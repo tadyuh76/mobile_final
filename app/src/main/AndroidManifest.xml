@@ -16,9 +16,13 @@
 
     <!-- Sensors -->
     <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION" />
+    <uses-permission android:name="android.permission.HIGH_SAMPLING_RATE_SENSORS" />
 
     <!-- Network -->
     <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- Wake Lock for tracking -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
 
     <application
         android:name=".RunTrackerApp"
@@ -43,13 +47,11 @@
             </intent-filter>
         </activity>
 
-        <!-- Tracking Service - Will be added in Phase 2 -->
-        <!--
+        <!-- Tracking Service -->
         <service
             android:name=".service.TrackingService"
             android:foregroundServiceType="location"
             android:exported="false" />
-        -->
 
     </application>
 
