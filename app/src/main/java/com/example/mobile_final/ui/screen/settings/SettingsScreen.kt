@@ -23,7 +23,10 @@ import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.DirectionsBike
 import androidx.compose.material.icons.filled.DirectionsWalk
 import androidx.compose.material.icons.filled.FitnessCenter
+import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Scale
 import androidx.compose.material.icons.filled.Straighten
 import androidx.compose.material3.AlertDialog
@@ -56,6 +59,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.mobile_final.data.local.entity.ActivityType
+import com.example.mobile_final.ui.theme.ThemeMode
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -71,6 +75,14 @@ fun SettingsScreen(
             useMetric = uiState.settings.useMetricUnits,
             onDismiss = { viewModel.hideWeightDialog() },
             onConfirm = { weight -> viewModel.updateWeight(weight) }
+        )
+    }
+
+    if (uiState.showThemeDialog) {
+        ThemeDialog(
+            currentTheme = uiState.settings.themeMode,
+            onDismiss = { viewModel.hideThemeDialog() },
+            onConfirm = { themeMode -> viewModel.updateThemeMode(themeMode) }
         )
     }
 
@@ -139,6 +151,20 @@ fun SettingsScreen(
                                 uiState.settings.useMetricUnits
                             ),
                             onClick = { viewModel.showWeightDialog() }
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // Appearance Section
+                SettingsSection(title = "Appearance") {
+                    SettingsCard {
+                        SettingsClickItem(
+                            icon = Icons.Default.Palette,
+                            title = "Theme",
+                            subtitle = getThemeDisplayName(uiState.settings.themeMode),
+                            onClick = { viewModel.showThemeDialog() }
                         )
                     }
                 }
@@ -445,4 +471,73 @@ private fun formatWeight(weightKg: Float, useMetric: Boolean): String {
     } else {
         String.format("%.1f lbs", weightKg * 2.20462f)
     }
+}
+
+private fun getThemeDisplayName(themeMode: ThemeMode): String {
+    return when (themeMode) {
+        ThemeMode.SYSTEM -> "System default"
+        ThemeMode.LIGHT -> "Light"
+        ThemeMode.DARK -> "Dark"
+    }
+}
+
+@Composable
+private fun ThemeDialog(
+    currentTheme: ThemeMode,
+    onDismiss: () -> Unit,
+    onConfirm: (ThemeMode) -> Unit
+) {
+    var selectedTheme by remember { mutableStateOf(currentTheme) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Choose Theme") },
+        text = {
+            Column {
+                ThemeMode.entries.forEach { theme ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { selectedTheme = theme }
+                            .padding(vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = when (theme) {
+                                ThemeMode.SYSTEM -> Icons.Default.Palette
+                                ThemeMode.LIGHT -> Icons.Default.LightMode
+                                ThemeMode.DARK -> Icons.Default.DarkMode
+                            },
+                            contentDescription = null,
+                            tint = if (selectedTheme == theme)
+                                MaterialTheme.colorScheme.primary
+                            else
+                                MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Text(
+                            text = getThemeDisplayName(theme),
+                            style = MaterialTheme.typography.bodyLarge,
+                            modifier = Modifier.weight(1f)
+                        )
+                        RadioButton(
+                            selected = selectedTheme == theme,
+                            onClick = { selectedTheme = theme }
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { onConfirm(selectedTheme) }) {
+                Text("Apply")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
 }

@@ -3,6 +3,7 @@ package com.example.mobile_final.data.repository
 import com.example.mobile_final.data.local.dao.UserSettingsDao
 import com.example.mobile_final.domain.model.UserSettings
 import com.example.mobile_final.domain.repository.SettingsRepository
+import com.example.mobile_final.ui.theme.ThemeMode
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
@@ -23,5 +24,9 @@ class SettingsRepositoryImpl @Inject constructor(
 
     override suspend fun updateSettings(settings: UserSettings) {
         userSettingsDao.insertSettings(settings.toEntity())
+    }
+
+    override fun getThemeMode(): Flow<ThemeMode> {
+        return getSettings().map { it.themeMode }
     }
 }

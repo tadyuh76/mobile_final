@@ -1,5 +1,13 @@
 package com.example.mobile_final.ui.screen.home
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.slideInVertically
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -29,10 +37,15 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -48,6 +61,23 @@ fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    var isVisible by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        isVisible = true
+    }
+
+    // Animated scale for start button
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.92f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        ),
+        label = "scale"
+    )
 
     Scaffold(
         topBar = {
@@ -89,88 +119,110 @@ fun HomeScreen(
                 .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Today's Stats Card
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+            // Today's Stats Card with animation
+            AnimatedVisibility(
+                visible = isVisible,
+                enter = fadeIn() + slideInVertically(
+                    initialOffsetY = { -40 },
+                    animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy)
+                )
             ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp)
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
                 ) {
-                    Text(
-                        text = "Today",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceEvenly
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp)
                     ) {
-                        StatItem(
-                            label = "Distance",
-                            value = String.format("%.2f km", uiState.todayDistanceKm)
+                        Text(
+                            text = "Today",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
                         )
-                        StatItem(
-                            label = "Time",
-                            value = formatDuration(uiState.todayDurationSeconds)
-                        )
-                        StatItem(
-                            label = "Calories",
-                            value = "${uiState.todayCalories}"
-                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceEvenly
+                        ) {
+                            StatItem(
+                                label = "Distance",
+                                value = String.format("%.2f km", uiState.todayDistanceKm)
+                            )
+                            StatItem(
+                                label = "Time",
+                                value = formatDuration(uiState.todayDurationSeconds)
+                            )
+                            StatItem(
+                                label = "Calories",
+                                value = "${uiState.todayCalories}"
+                            )
+                        }
                     }
                 }
             }
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Weekly Stats Card
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp)
-                ) {
-                    Text(
-                        text = "This Week",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
+            // Weekly Stats Card with animation
+            AnimatedVisibility(
+                visible = isVisible,
+                enter = fadeIn() + slideInVertically(
+                    initialOffsetY = { -40 },
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                        stiffness = Spring.StiffnessLow
                     )
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceEvenly
+                )
+            ) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp)
                     ) {
-                        StatItem(
-                            label = "Distance",
-                            value = String.format("%.2f km", uiState.weeklyDistanceKm)
+                        Text(
+                            text = "This Week",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
                         )
-                        StatItem(
-                            label = "Activities",
-                            value = "${uiState.weeklyActivityCount}"
-                        )
-                        StatItem(
-                            label = "Calories",
-                            value = "${uiState.weeklyCalories}"
-                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceEvenly
+                        ) {
+                            StatItem(
+                                label = "Distance",
+                                value = String.format("%.2f km", uiState.weeklyDistanceKm)
+                            )
+                            StatItem(
+                                label = "Activities",
+                                value = "${uiState.weeklyActivityCount}"
+                            )
+                            StatItem(
+                                label = "Calories",
+                                value = "${uiState.weeklyCalories}"
+                            )
+                        }
                     }
                 }
             }
 
             Spacer(modifier = Modifier.weight(1f))
 
-            // Start Button
+            // Start Button with scale animation
             LargeFloatingActionButton(
                 onClick = onStartTracking,
                 shape = CircleShape,
                 containerColor = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(96.dp)
+                interactionSource = interactionSource,
+                modifier = Modifier
+                    .size(96.dp)
+                    .scale(scale)
             ) {
                 Icon(
                     imageVector = Icons.Default.PlayArrow,

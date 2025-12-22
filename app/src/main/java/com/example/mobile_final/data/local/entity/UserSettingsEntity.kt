@@ -10,5 +10,6 @@ data class UserSettingsEntity(
     val preferredActivityType: String = "running",
     val useMetricUnits: Boolean = true,
     val notificationsEnabled: Boolean = true,
-    val weight: Float = 70f  // kg, for calorie calculation
+    val weight: Float = 70f,  // kg, for calorie calculation
+    val themeMode: String = "system"  // "system", "light", "dark"
 )

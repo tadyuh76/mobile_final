@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.mobile_final.data.local.entity.ActivityType
 import com.example.mobile_final.domain.model.UserSettings
 import com.example.mobile_final.domain.repository.SettingsRepository
+import com.example.mobile_final.ui.theme.ThemeMode
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -16,7 +17,8 @@ data class SettingsUiState(
     val settings: UserSettings = UserSettings(),
     val isLoading: Boolean = true,
     val isSaving: Boolean = false,
-    val showWeightDialog: Boolean = false
+    val showWeightDialog: Boolean = false,
+    val showThemeDialog: Boolean = false
 )
 
 @HiltViewModel
@@ -67,12 +69,27 @@ class SettingsViewModel @Inject constructor(
         hideWeightDialog()
     }
 
+    fun updateThemeMode(themeMode: ThemeMode) {
+        val currentSettings = _uiState.value.settings
+        val newSettings = currentSettings.copy(themeMode = themeMode)
+        saveSettings(newSettings)
+        hideThemeDialog()
+    }
+
     fun showWeightDialog() {
         _uiState.value = _uiState.value.copy(showWeightDialog = true)
     }
 
     fun hideWeightDialog() {
         _uiState.value = _uiState.value.copy(showWeightDialog = false)
+    }
+
+    fun showThemeDialog() {
+        _uiState.value = _uiState.value.copy(showThemeDialog = true)
+    }
+
+    fun hideThemeDialog() {
+        _uiState.value = _uiState.value.copy(showThemeDialog = false)
     }
 
     private fun saveSettings(settings: UserSettings) {
