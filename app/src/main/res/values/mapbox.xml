@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Mapbox Public Access Token -->
+    <!-- Get your token from https://account.mapbox.com/access-tokens/ -->
+    <!-- Use your PUBLIC token (starts with pk.) here -->
+    <string name="mapbox_access_token" translatable="false">pk.eyJ1IjoidGFkeXVoNzYiLCJhIjoiY21qaGNmcGhzMDYxejNmcHU5MnViNGUyeCJ9.QS_NvDypbiUxqKcA149ntw</string>
+</resources>
