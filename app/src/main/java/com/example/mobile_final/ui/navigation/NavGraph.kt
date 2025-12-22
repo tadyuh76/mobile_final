@@ -10,6 +10,7 @@ import androidx.navigation.navArgument
 import com.example.mobile_final.ui.screen.detail.DetailScreen
 import com.example.mobile_final.ui.screen.history.HistoryScreen
 import com.example.mobile_final.ui.screen.home.HomeScreen
+import com.example.mobile_final.ui.screen.profile.ProfileScreen
 import com.example.mobile_final.ui.screen.settings.SettingsScreen
 import com.example.mobile_final.ui.screen.stats.StatsScreen
 import com.example.mobile_final.ui.screen.tracking.TrackingScreen
@@ -37,6 +38,9 @@ fun NavGraph(
                 },
                 onNavigateToSettings = {
                     navController.navigate(Screen.Settings.route)
+                },
+                onNavigateToProfile = {
+                    navController.navigate(Screen.Profile.route)
                 }
             )
         }
@@ -90,6 +94,14 @@ fun NavGraph(
 
         composable(Screen.Settings.route) {
             SettingsScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        composable(Screen.Profile.route) {
+            ProfileScreen(
                 onNavigateBack = {
                     navController.popBackStack()
                 }

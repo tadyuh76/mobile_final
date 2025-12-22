@@ -84,4 +84,17 @@ interface ActivityDao {
         WHERE startTime >= :startTime AND startTime < :endTime
     """)
     suspend fun getTotalCaloriesForPeriod(startTime: Long, endTime: Long): Int?
+
+    // Sync-related queries
+    @Query("SELECT * FROM activities ORDER BY startTime DESC")
+    suspend fun getAllActivitiesOnce(): List<ActivityEntity>
+
+    @Query("SELECT * FROM activities WHERE startTime = :startTime LIMIT 1")
+    suspend fun getActivityByStartTime(startTime: Long): ActivityEntity?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insert(activity: ActivityEntity): Long
+
+    @Update
+    suspend fun update(activity: ActivityEntity)
 }

@@ -27,4 +27,7 @@ interface LocationPointDao {
 
     @Query("SELECT COUNT(*) FROM location_points WHERE activityId = :activityId")
     suspend fun getLocationPointCountForActivity(activityId: Long): Int
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insert(locationPoint: LocationPointEntity): Long
 }
