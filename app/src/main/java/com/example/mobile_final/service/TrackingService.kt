@@ -29,11 +29,15 @@ import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.Priority
+import com.example.mobile_final.domain.repository.SettingsRepository
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import javax.inject.Inject
 import kotlin.math.roundToInt
 
@@ -46,6 +50,9 @@ class TrackingService : LifecycleService(), SensorEventListener {
     @Inject
     lateinit var activityRepository: ActivityRepository
 
+    @Inject
+    lateinit var settingsRepository: SettingsRepository
+
     private val binder = LocalBinder()
 
     private var sensorManager: SensorManager? = null
@@ -53,7 +60,9 @@ class TrackingService : LifecycleService(), SensorEventListener {
     private var initialStepCount: Int = -1
 
     private var currentActivityId: Long = -1L
+    private var activityIdDeferred: CompletableDeferred<Long>? = null
     private var lastLocation: Location? = null
+    private var userWeightKg: Float = 70f
 
     // Tracking state
     private val _trackingState = MutableStateFlow(TrackingState())
@@ -124,6 +133,7 @@ class TrackingService : LifecycleService(), SensorEventListener {
         totalPausedDuration = 0L
         initialStepCount = -1
         lastLocation = null
+        activityIdDeferred = CompletableDeferred()
 
         _trackingState.value = TrackingState(
             activityType = activityType,
@@ -131,13 +141,18 @@ class TrackingService : LifecycleService(), SensorEventListener {
         )
         _locationPoints.value = emptyList()
 
-        // Create activity in database
+        // Load user weight and create activity in database
         lifecycleScope.launch {
+            // Load user's weight from settings
+            val settings = settingsRepository.getSettingsOnce()
+            userWeightKg = settings.weight
+
             val activity = Activity(
                 type = activityType,
                 startTime = startTime
             )
             currentActivityId = activityRepository.insertActivity(activity)
+            activityIdDeferred?.complete(currentActivityId)
         }
 
         // Start foreground service
@@ -230,16 +245,7 @@ class TrackingService : LifecycleService(), SensorEventListener {
     }
 
     private fun addLocationPoint(location: Location) {
-        val point = LocationPoint(
-            activityId = currentActivityId,
-            latitude = location.latitude,
-            longitude = location.longitude,
-            altitude = if (location.hasAltitude()) location.altitude else null,
-            timestamp = System.currentTimeMillis(),
-            speedMps = if (location.hasSpeed()) location.speed else null
-        )
-
-        // Calculate distance
+        // Calculate distance first (doesn't need activity ID)
         lastLocation?.let { last ->
             val distance = last.distanceTo(location)
             if (distance > 1f) { // Only count if moved more than 1 meter
@@ -256,11 +262,22 @@ class TrackingService : LifecycleService(), SensorEventListener {
 
         lastLocation = location
 
-        // Add to local list
-        _locationPoints.value = _locationPoints.value + point
-
-        // Save to database
+        // Save to database - wait for activity ID to be available
         lifecycleScope.launch {
+            val activityId = activityIdDeferred?.await() ?: return@launch
+
+            val point = LocationPoint(
+                activityId = activityId,
+                latitude = location.latitude,
+                longitude = location.longitude,
+                altitude = if (location.hasAltitude()) location.altitude else null,
+                timestamp = System.currentTimeMillis(),
+                speedMps = if (location.hasSpeed()) location.speed else null
+            )
+
+            // Add to local list
+            _locationPoints.value = _locationPoints.value + point
+
             activityRepository.insertLocationPoint(point)
         }
 
@@ -300,9 +317,8 @@ class TrackingService : LifecycleService(), SensorEventListener {
             ActivityType.WALKING -> 3.5
             ActivityType.CYCLING -> 7.0
         }
-        val weightKg = 70.0 // Default weight, can be made configurable
         val durationHours = calculateDuration() / 3600000.0
-        return (metValue * weightKg * durationHours).roundToInt()
+        return (metValue * userWeightKg * durationHours).roundToInt()
     }
 
     private fun createNotification(): android.app.Notification {
@@ -365,6 +381,10 @@ class TrackingService : LifecycleService(), SensorEventListener {
     }
 
     fun getActivityId(): Long = currentActivityId
+
+    suspend fun getActivityIdAsync(): Long {
+        return activityIdDeferred?.await() ?: -1L
+    }
 
     companion object {
         const val ACTION_START = "ACTION_START"

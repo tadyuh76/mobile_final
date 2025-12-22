@@ -228,11 +228,12 @@ fun TrackingScreen(
                     onPause = { viewModel.pauseTracking() },
                     onResume = { viewModel.resumeTracking() },
                     onStop = {
-                        val activityId = viewModel.stopTracking()
-                        if (activityId != -1L) {
-                            onActivitySaved(activityId)
-                        } else {
-                            onNavigateBack()
+                        viewModel.stopTrackingAsync { activityId ->
+                            if (activityId != -1L) {
+                                onActivitySaved(activityId)
+                            } else {
+                                onNavigateBack()
+                            }
                         }
                     }
                 )

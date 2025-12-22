@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.mobile_final.domain.model.Activity
 import com.example.mobile_final.domain.repository.ActivityRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -25,12 +26,16 @@ class HistoryViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(HistoryUiState(isLoading = true))
     val uiState: StateFlow<HistoryUiState> = _uiState.asStateFlow()
 
+    private var loadJob: Job? = null
+
     init {
         loadActivities()
     }
 
     private fun loadActivities() {
-        viewModelScope.launch {
+        // Cancel any existing collection to avoid duplicates
+        loadJob?.cancel()
+        loadJob = viewModelScope.launch {
             activityRepository.getAllActivities().collect { activities ->
                 _uiState.value = HistoryUiState(
                     activities = activities,

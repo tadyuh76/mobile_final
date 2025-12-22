@@ -117,6 +117,19 @@ class TrackingViewModel @Inject constructor(
         return activityId
     }
 
+    fun stopTrackingAsync(onActivitySaved: (Long) -> Unit) {
+        viewModelScope.launch {
+            // Wait for the activity ID to be available (handles race condition)
+            val activityId = trackingService?.getActivityIdAsync() ?: -1L
+
+            Intent(context, TrackingService::class.java).apply {
+                action = TrackingService.ACTION_STOP
+            }.also { context.startService(it) }
+
+            onActivitySaved(activityId)
+        }
+    }
+
     override fun onCleared() {
         super.onCleared()
         unbindService()

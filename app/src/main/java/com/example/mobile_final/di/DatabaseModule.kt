@@ -24,7 +24,9 @@ object DatabaseModule {
             context,
             RunTrackerDatabase::class.java,
             RunTrackerDatabase.DATABASE_NAME
-        ).build()
+        )
+            .fallbackToDestructiveMigration()
+            .build()
     }
 
     @Provides
