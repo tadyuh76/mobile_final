@@ -18,7 +18,7 @@ mapbox = "11.8.0"
 playServicesLocation = "21.2.0"
 playServicesAuth = "21.0.0"
 firebaseBom = "32.8.0"
-vico = "1.14.0"
+vico = "2.0.0-beta.1"
 lifecycleService = "2.7.0"
 coroutines = "1.7.3"
 
@@ -53,7 +53,7 @@ navigation-compose = { group = "androidx.navigation", name = "navigation-compose
 
 # Mapbox Maps
 mapbox-maps = { group = "com.mapbox.maps", name = "android", version.ref = "mapbox" }
-mapbox-maps-compose = { group = "com.mapbox.maps", name = "extension-compose", version.ref = "mapbox" }
+mapbox-maps-compose = { group = "com.mapbox.extension", name = "maps-compose", version.ref = "mapbox" }
 
 # Location
 play-services-location = { group = "com.google.android.gms", name = "play-services-location", version.ref = "playServicesLocation" }

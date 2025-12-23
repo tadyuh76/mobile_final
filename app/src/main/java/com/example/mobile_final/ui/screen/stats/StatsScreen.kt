@@ -44,21 +44,20 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.mobile_final.util.FormatUtils
 import com.patrykandpatrick.vico.compose.cartesian.CartesianChartHost
-import com.patrykandpatrick.vico.compose.cartesian.axis.rememberBottomAxis
-import com.patrykandpatrick.vico.compose.cartesian.axis.rememberStartAxis
+import com.patrykandpatrick.vico.compose.cartesian.axis.rememberBottom
+import com.patrykandpatrick.vico.compose.cartesian.axis.rememberStart
 import com.patrykandpatrick.vico.compose.cartesian.layer.rememberColumnCartesianLayer
 import com.patrykandpatrick.vico.compose.cartesian.layer.rememberLineCartesianLayer
 import com.patrykandpatrick.vico.compose.cartesian.rememberCartesianChart
 import com.patrykandpatrick.vico.compose.common.component.rememberLineComponent
-import com.patrykandpatrick.vico.compose.common.component.rememberShapeComponent
-import com.patrykandpatrick.vico.compose.common.of
-import com.patrykandpatrick.vico.core.cartesian.axis.AxisItemPlacer
+import com.patrykandpatrick.vico.core.cartesian.axis.HorizontalAxis
+import com.patrykandpatrick.vico.core.cartesian.axis.VerticalAxis
 import com.patrykandpatrick.vico.core.cartesian.data.CartesianChartModelProducer
+import com.patrykandpatrick.vico.core.cartesian.data.CartesianValueFormatter
 import com.patrykandpatrick.vico.core.cartesian.data.columnSeries
 import com.patrykandpatrick.vico.core.cartesian.data.lineSeries
 import com.patrykandpatrick.vico.core.cartesian.layer.ColumnCartesianLayer
-import com.patrykandpatrick.vico.core.common.Dimensions
-import com.patrykandpatrick.vico.core.common.shape.Shape
+import com.patrykandpatrick.vico.core.common.shape.CorneredShape
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -288,26 +287,26 @@ private fun WeeklyDistanceChart(
                 }
 
                 val primaryColor = MaterialTheme.colorScheme.primary
+                val bottomAxisValueFormatter = CartesianValueFormatter { _, x, _ ->
+                    dailyStats.getOrNull(x.toInt())?.shortDay ?: ""
+                }
 
                 CartesianChartHost(
                     chart = rememberCartesianChart(
                         rememberColumnCartesianLayer(
-                            ColumnCartesianLayer.ColumnProvider.series(
+                            columnProvider = ColumnCartesianLayer.ColumnProvider.series(
                                 rememberLineComponent(
                                     color = primaryColor,
                                     thickness = 24.dp,
-                                    shape = Shape.rounded(allPercent = 40)
+                                    shape = CorneredShape.rounded(allPercent = 40)
                                 )
                             )
                         ),
-                        startAxis = rememberStartAxis(
-                            title = "km",
-                            itemPlacer = AxisItemPlacer.Vertical.count(count = { 5 })
+                        startAxis = VerticalAxis.rememberStart(
+                            itemPlacer = VerticalAxis.ItemPlacer.count({ 5 })
                         ),
-                        bottomAxis = rememberBottomAxis(
-                            valueFormatter = { value, _, _ ->
-                                dailyStats.getOrNull(value.toInt())?.shortDay ?: ""
-                            }
+                        bottomAxis = HorizontalAxis.rememberBottom(
+                            valueFormatter = bottomAxisValueFormatter
                         )
                     ),
                     modelProducer = modelProducer,
@@ -362,17 +361,18 @@ private fun MonthlyTrendChart(
                     }
                 }
 
+                val bottomAxisValueFormatter = CartesianValueFormatter { _, x, _ ->
+                    "W${weeklyStats.getOrNull(x.toInt())?.weekNumber ?: ""}"
+                }
+
                 CartesianChartHost(
                     chart = rememberCartesianChart(
                         rememberLineCartesianLayer(),
-                        startAxis = rememberStartAxis(
-                            title = "km",
-                            itemPlacer = AxisItemPlacer.Vertical.count(count = { 5 })
+                        startAxis = VerticalAxis.rememberStart(
+                            itemPlacer = VerticalAxis.ItemPlacer.count({ 5 })
                         ),
-                        bottomAxis = rememberBottomAxis(
-                            valueFormatter = { value, _, _ ->
-                                "W${weeklyStats.getOrNull(value.toInt())?.weekNumber ?: ""}"
-                            }
+                        bottomAxis = HorizontalAxis.rememberBottom(
+                            valueFormatter = bottomAxisValueFormatter
                         )
                     ),
                     modelProducer = modelProducer,

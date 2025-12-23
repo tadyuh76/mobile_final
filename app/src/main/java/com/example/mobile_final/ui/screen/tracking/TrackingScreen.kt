@@ -186,10 +186,11 @@ fun TrackingScreen(
                         Point.fromLngLat(it.longitude, it.latitude)
                     }
                     PolylineAnnotation(
-                        points = points,
-                        lineColorInt = android.graphics.Color.parseColor("#4CAF50"),
+                        points = points
+                    ) {
+                        lineColor = androidx.compose.ui.graphics.Color(0xFF4CAF50)
                         lineWidth = 5.0
-                    )
+                    }
                 }
             }
 
