@@ -465,6 +465,10 @@ private fun ActiveSessionCard(
                     value = formatPace(trackingState.avgPace)
                 )
                 ActiveSessionStat(
+                    label = "Steps",
+                    value = "${trackingState.steps}"
+                )
+                ActiveSessionStat(
                     label = "Calories",
                     value = "${trackingState.calories}"
                 )

@@ -429,6 +429,7 @@ class TrackingService : LifecycleService(), SensorEventListener {
                 }
                 val sessionSteps = totalSteps - initialStepCount
                 _trackingState.value = _trackingState.value.copy(steps = sessionSteps)
+                publishTrackingState()
             }
         }
     }

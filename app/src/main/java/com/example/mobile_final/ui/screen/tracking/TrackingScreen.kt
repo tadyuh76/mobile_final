@@ -27,6 +27,7 @@ import androidx.compose.material.icons.filled.DirectionsWalk
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -38,6 +39,7 @@ import androidx.compose.material3.LargeFloatingActionButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -81,6 +83,7 @@ fun TrackingScreen(
 
     var hasLocationPermission by remember { mutableStateOf(false) }
     var hasNotificationPermission by remember { mutableStateOf(true) }
+    var showStopConfirmDialog by remember { mutableStateOf(false) }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -133,12 +136,7 @@ fun TrackingScreen(
             TopAppBar(
                 title = { Text("Track Activity") },
                 navigationIcon = {
-                    IconButton(onClick = {
-                        if (trackingState.isTracking) {
-                            viewModel.stopTracking()
-                        }
-                        onNavigateBack()
-                    }) {
+                    IconButton(onClick = onNavigateBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back"
@@ -230,18 +228,27 @@ fun TrackingScreen(
                     onStart = { viewModel.startTracking() },
                     onPause = { viewModel.pauseTracking() },
                     onResume = { viewModel.resumeTracking() },
-                    onStop = {
-                        viewModel.stopTrackingAsync { activityId ->
-                            if (activityId != -1L) {
-                                onActivitySaved(activityId)
-                            } else {
-                                onNavigateBack()
-                            }
-                        }
-                    }
+                    onStop = { showStopConfirmDialog = true }
                 )
             }
         }
+    }
+
+    // Stop Confirmation Dialog
+    if (showStopConfirmDialog) {
+        StopConfirmationDialog(
+            onConfirm = {
+                showStopConfirmDialog = false
+                viewModel.stopTrackingAsync { activityId ->
+                    if (activityId != -1L) {
+                        onActivitySaved(activityId)
+                    } else {
+                        onNavigateBack()
+                    }
+                }
+            },
+            onDismiss = { showStopConfirmDialog = false }
+        )
     }
 }
 
@@ -474,4 +481,28 @@ private fun formatPace(secondsPerKm: Double): String {
     val minutes = (secondsPerKm / 60).toInt()
     val seconds = (secondsPerKm % 60).toInt()
     return String.format("%d:%02d", minutes, seconds)
+}
+
+@Composable
+private fun StopConfirmationDialog(
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("End Activity?") },
+        text = {
+            Text("Are you sure you want to end this activity? Your progress will be saved.")
+        },
+        confirmButton = {
+            TextButton(onClick = onConfirm) {
+                Text("End Activity", color = MaterialTheme.colorScheme.error)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Continue")
+            }
+        }
+    )
 }
