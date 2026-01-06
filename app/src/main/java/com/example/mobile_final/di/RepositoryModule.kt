@@ -1,10 +1,12 @@
 package com.example.mobile_final.di
 
+import com.example.mobile_final.data.repository.ActiveSessionRepositoryImpl
 import com.example.mobile_final.data.repository.ActivityRepositoryImpl
 import com.example.mobile_final.data.repository.AuthRepositoryImpl
 import com.example.mobile_final.data.repository.SettingsRepositoryImpl
 import com.example.mobile_final.data.repository.SyncRepositoryImpl
 import com.example.mobile_final.data.repository.WeatherRepositoryImpl
+import com.example.mobile_final.domain.repository.ActiveSessionRepository
 import com.example.mobile_final.domain.repository.ActivityRepository
 import com.example.mobile_final.domain.repository.AuthRepository
 import com.example.mobile_final.domain.repository.SettingsRepository
@@ -49,4 +51,10 @@ abstract class RepositoryModule {
     abstract fun bindWeatherRepository(
         weatherRepositoryImpl: WeatherRepositoryImpl
     ): WeatherRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindActiveSessionRepository(
+        activeSessionRepositoryImpl: ActiveSessionRepositoryImpl
+    ): ActiveSessionRepository
 }

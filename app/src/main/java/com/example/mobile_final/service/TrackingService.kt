@@ -24,6 +24,7 @@ import com.example.mobile_final.data.local.entity.ActivityType
 import com.example.mobile_final.domain.model.Activity
 import com.example.mobile_final.domain.model.LocationPoint
 import com.example.mobile_final.domain.model.WeatherData
+import com.example.mobile_final.domain.repository.ActiveSessionRepository
 import com.example.mobile_final.domain.repository.ActivityRepository
 import com.example.mobile_final.domain.repository.WeatherRepository
 import com.google.android.gms.location.FusedLocationProviderClient
@@ -58,6 +59,9 @@ class TrackingService : LifecycleService(), SensorEventListener {
 
     @Inject
     lateinit var weatherRepository: WeatherRepository
+
+    @Inject
+    lateinit var activeSessionRepository: ActiveSessionRepository
 
     private val binder = LocalBinder()
 
@@ -149,6 +153,7 @@ class TrackingService : LifecycleService(), SensorEventListener {
             activityType = activityType,
             isTracking = true
         )
+        publishTrackingState()
         _locationPoints.value = emptyList()
 
         // Reset weather data for new activity
@@ -203,6 +208,7 @@ class TrackingService : LifecycleService(), SensorEventListener {
         pausedTime = System.currentTimeMillis()
 
         _trackingState.value = _trackingState.value.copy(isPaused = true)
+        publishTrackingState()
         updateNotification()
     }
 
@@ -213,6 +219,7 @@ class TrackingService : LifecycleService(), SensorEventListener {
         totalPausedDuration += System.currentTimeMillis() - pausedTime
 
         _trackingState.value = _trackingState.value.copy(isPaused = false)
+        publishTrackingState()
         updateNotification()
     }
 
@@ -259,6 +266,7 @@ class TrackingService : LifecycleService(), SensorEventListener {
         }
 
         _trackingState.value = TrackingState()
+        publishTrackingState()
 
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()
@@ -341,11 +349,20 @@ class TrackingService : LifecycleService(), SensorEventListener {
                             (duration / 1000.0) / (currentState.distanceMeters / 1000.0)
                         } else 0.0
                     )
+                    publishTrackingState()
                     updateNotification()
                 }
                 kotlinx.coroutines.delay(1000)
             }
         }
+    }
+
+    /**
+     * Publishes the current tracking state to the ActiveSessionRepository
+     * so it can be observed by other UI components (e.g., HomeScreen).
+     */
+    private fun publishTrackingState() {
+        activeSessionRepository.updateTrackingState(_trackingState.value)
     }
 
     private fun calculateDuration(): Long {
