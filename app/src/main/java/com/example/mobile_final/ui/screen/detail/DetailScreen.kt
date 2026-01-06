@@ -23,7 +23,10 @@ import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Straighten
+import androidx.compose.material.icons.filled.Thermostat
 import androidx.compose.material.icons.filled.TrendingUp
+import androidx.compose.material.icons.filled.WaterDrop
+import androidx.compose.material.icons.filled.Air
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -46,7 +49,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import kotlin.math.roundToInt
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.mobile_final.data.local.entity.ActivityType
 import com.example.mobile_final.domain.model.Activity
@@ -168,6 +173,15 @@ private fun DetailContent(
             activity = activity,
             modifier = Modifier.padding(16.dp)
         )
+
+        // Weather Card (if weather data available)
+        if (activity.hasWeatherData()) {
+            WeatherCard(
+                activity = activity,
+                modifier = Modifier.padding(horizontal = 16.dp)
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+        }
 
         // Stats Grid
         StatsGrid(
@@ -435,6 +449,89 @@ private fun DeleteConfirmationDialog(
             }
         }
     )
+}
+
+@Composable
+private fun WeatherCard(
+    activity: Activity,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.secondaryContainer
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp)
+        ) {
+            Text(
+                text = "Weather Conditions",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSecondaryContainer
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                // Temperature
+                WeatherStat(
+                    icon = Icons.Default.Thermostat,
+                    value = "${activity.weatherTemperature?.roundToInt()}°C",
+                    label = activity.weatherDescription ?: "N/A"
+                )
+
+                // Humidity
+                WeatherStat(
+                    icon = Icons.Default.WaterDrop,
+                    value = "${activity.weatherHumidity}%",
+                    label = "Humidity"
+                )
+
+                // Wind
+                WeatherStat(
+                    icon = Icons.Default.Air,
+                    value = "${activity.weatherWindSpeed?.roundToInt()} km/h",
+                    label = "Wind"
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun WeatherStat(
+    icon: ImageVector,
+    value: String,
+    label: String
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            modifier = Modifier.size(24.dp),
+            tint = MaterialTheme.colorScheme.onSecondaryContainer
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = value,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSecondaryContainer
+        )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f),
+            textAlign = TextAlign.Center
+        )
+    }
 }
 
 private fun getActivityIcon(type: ActivityType): ImageVector {

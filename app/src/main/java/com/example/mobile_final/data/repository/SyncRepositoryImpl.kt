@@ -71,7 +71,7 @@ class SyncRepositoryImpl @Inject constructor(
                 val existingActivity = activityDao.getActivityByStartTime(startTime)
 
                 if (existingActivity == null) {
-                    // Create new activity
+                    // Create new activity (including weather data)
                     val activity = Activity(
                         id = 0, // Will be auto-generated
                         type = ActivityType.fromString(activityData["type"] as? String ?: "running"),
@@ -82,7 +82,13 @@ class SyncRepositoryImpl @Inject constructor(
                         caloriesBurned = (activityData["caloriesBurned"] as? Number)?.toInt() ?: 0,
                         avgPaceSecondsPerKm = (activityData["avgPaceSecondsPerKm"] as? Number)?.toInt() ?: 0,
                         stepCount = (activityData["stepCount"] as? Number)?.toInt() ?: 0,
-                        isSynced = true
+                        isSynced = true,
+                        // Weather data
+                        weatherTemperature = (activityData["weatherTemperature"] as? Number)?.toDouble(),
+                        weatherHumidity = (activityData["weatherHumidity"] as? Number)?.toInt(),
+                        weatherCode = (activityData["weatherCode"] as? Number)?.toInt(),
+                        weatherWindSpeed = (activityData["weatherWindSpeed"] as? Number)?.toDouble(),
+                        weatherDescription = activityData["weatherDescription"] as? String
                     )
 
                     // Insert activity
@@ -130,7 +136,7 @@ class SyncRepositoryImpl @Inject constructor(
                 .collection(ACTIVITIES_COLLECTION)
                 .document(activity.startTime.toString())
 
-            // Create activity document
+            // Create activity document (including weather data)
             val activityData = hashMapOf(
                 "type" to activity.type.name.lowercase(),
                 "startTime" to activity.startTime,
@@ -139,7 +145,13 @@ class SyncRepositoryImpl @Inject constructor(
                 "durationSeconds" to activity.durationSeconds,
                 "caloriesBurned" to activity.caloriesBurned,
                 "avgPaceSecondsPerKm" to activity.avgPaceSecondsPerKm,
-                "stepCount" to activity.stepCount
+                "stepCount" to activity.stepCount,
+                // Weather data
+                "weatherTemperature" to activity.weatherTemperature,
+                "weatherHumidity" to activity.weatherHumidity,
+                "weatherCode" to activity.weatherCode,
+                "weatherWindSpeed" to activity.weatherWindSpeed,
+                "weatherDescription" to activity.weatherDescription
             )
 
             activityRef.set(activityData).await()

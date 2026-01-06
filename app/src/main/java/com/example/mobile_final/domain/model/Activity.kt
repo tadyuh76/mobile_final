@@ -13,8 +13,19 @@ data class Activity(
     val caloriesBurned: Int = 0,
     val avgPaceSecondsPerKm: Int = 0,
     val stepCount: Int = 0,
-    val isSynced: Boolean = false
+    val isSynced: Boolean = false,
+    // Weather data captured at activity start
+    val weatherTemperature: Double? = null,
+    val weatherHumidity: Int? = null,
+    val weatherCode: Int? = null,
+    val weatherWindSpeed: Double? = null,
+    val weatherDescription: String? = null
 ) {
+    /**
+     * Returns true if weather data was captured for this activity.
+     */
+    fun hasWeatherData(): Boolean = weatherTemperature != null
+
     fun toEntity(): ActivityEntity {
         return ActivityEntity(
             id = id,
@@ -26,7 +37,12 @@ data class Activity(
             caloriesBurned = caloriesBurned,
             avgPaceSecondsPerKm = avgPaceSecondsPerKm,
             stepCount = stepCount,
-            isSynced = isSynced
+            isSynced = isSynced,
+            weatherTemperature = weatherTemperature,
+            weatherHumidity = weatherHumidity,
+            weatherCode = weatherCode,
+            weatherWindSpeed = weatherWindSpeed,
+            weatherDescription = weatherDescription
         )
     }
 
@@ -42,7 +58,12 @@ data class Activity(
                 caloriesBurned = entity.caloriesBurned,
                 avgPaceSecondsPerKm = entity.avgPaceSecondsPerKm,
                 stepCount = entity.stepCount,
-                isSynced = entity.isSynced
+                isSynced = entity.isSynced,
+                weatherTemperature = entity.weatherTemperature,
+                weatherHumidity = entity.weatherHumidity,
+                weatherCode = entity.weatherCode,
+                weatherWindSpeed = entity.weatherWindSpeed,
+                weatherDescription = entity.weatherDescription
             )
         }
     }

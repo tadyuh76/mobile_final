@@ -23,7 +23,9 @@ import com.example.mobile_final.RunTrackerApp
 import com.example.mobile_final.data.local.entity.ActivityType
 import com.example.mobile_final.domain.model.Activity
 import com.example.mobile_final.domain.model.LocationPoint
+import com.example.mobile_final.domain.model.WeatherData
 import com.example.mobile_final.domain.repository.ActivityRepository
+import com.example.mobile_final.domain.repository.WeatherRepository
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
@@ -38,6 +40,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import android.util.Log
 import javax.inject.Inject
 import kotlin.math.roundToInt
 
@@ -53,6 +56,9 @@ class TrackingService : LifecycleService(), SensorEventListener {
     @Inject
     lateinit var settingsRepository: SettingsRepository
 
+    @Inject
+    lateinit var weatherRepository: WeatherRepository
+
     private val binder = LocalBinder()
 
     private var sensorManager: SensorManager? = null
@@ -63,6 +69,10 @@ class TrackingService : LifecycleService(), SensorEventListener {
     private var activityIdDeferred: CompletableDeferred<Long>? = null
     private var lastLocation: Location? = null
     private var userWeightKg: Float = 70f
+
+    // Weather data for the current activity
+    private var activityWeatherData: WeatherData? = null
+    private var hasAttemptedWeatherFetch: Boolean = false
 
     // Tracking state
     private val _trackingState = MutableStateFlow(TrackingState())
@@ -140,6 +150,10 @@ class TrackingService : LifecycleService(), SensorEventListener {
             isTracking = true
         )
         _locationPoints.value = emptyList()
+
+        // Reset weather data for new activity
+        activityWeatherData = null
+        hasAttemptedWeatherFetch = false
 
         // Load user weight and create activity in database
         lifecycleScope.launch {
@@ -232,7 +246,13 @@ class TrackingService : LifecycleService(), SensorEventListener {
                     avgPaceSecondsPerKm = if (state.distanceMeters > 0) {
                         ((duration / 1000.0) / (state.distanceMeters / 1000.0)).roundToInt()
                     } else 0,
-                    stepCount = state.steps
+                    stepCount = state.steps,
+                    // Include weather data captured at activity start
+                    weatherTemperature = activityWeatherData?.temperatureCelsius,
+                    weatherHumidity = activityWeatherData?.humidity,
+                    weatherCode = activityWeatherData?.weatherCode,
+                    weatherWindSpeed = activityWeatherData?.windSpeedKmh,
+                    weatherDescription = activityWeatherData?.description
                 )
                 activityRepository.updateActivity(activity)
             }
@@ -245,6 +265,12 @@ class TrackingService : LifecycleService(), SensorEventListener {
     }
 
     private fun addLocationPoint(location: Location) {
+        // Fetch weather on first valid location point
+        if (!hasAttemptedWeatherFetch) {
+            hasAttemptedWeatherFetch = true
+            fetchWeatherForLocation(location.latitude, location.longitude)
+        }
+
         // Calculate distance first (doesn't need activity ID)
         lastLocation?.let { last ->
             val distance = last.distanceTo(location)
@@ -282,6 +308,24 @@ class TrackingService : LifecycleService(), SensorEventListener {
         }
 
         updateNotification()
+    }
+
+    /**
+     * Fetches weather data for the current location.
+     * Non-blocking: failures are logged but don't interrupt tracking.
+     */
+    private fun fetchWeatherForLocation(latitude: Double, longitude: Double) {
+        lifecycleScope.launch {
+            weatherRepository.getWeatherForLocation(latitude, longitude)
+                .onSuccess { weather ->
+                    activityWeatherData = weather
+                    Log.d(TAG, "Weather fetched: ${weather.description}, ${weather.temperatureCelsius}°C")
+                }
+                .onFailure { error ->
+                    Log.w(TAG, "Failed to fetch weather: ${error.message}")
+                    // Activity continues without weather data
+                }
+        }
     }
 
     private fun startTimerUpdates() {
@@ -387,6 +431,8 @@ class TrackingService : LifecycleService(), SensorEventListener {
     }
 
     companion object {
+        private const val TAG = "TrackingService"
+
         const val ACTION_START = "ACTION_START"
         const val ACTION_PAUSE = "ACTION_PAUSE"
         const val ACTION_RESUME = "ACTION_RESUME"
