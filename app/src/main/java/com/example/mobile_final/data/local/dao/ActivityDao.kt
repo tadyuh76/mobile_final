@@ -100,4 +100,13 @@ interface ActivityDao {
 
     @Query("UPDATE activities SET isPublic = :isPublic WHERE id = :activityId")
     suspend fun updateActivityPublicStatus(activityId: Long, isPublic: Boolean)
+
+    @Query("SELECT COUNT(*) FROM activities WHERE isSynced = 1")
+    suspend fun getSyncedActivityCount(): Int
+
+    @Query("SELECT COUNT(*) FROM activities")
+    suspend fun getTotalActivityCount(): Int
+
+    @Query("DELETE FROM activities")
+    suspend fun deleteAllActivities()
 }

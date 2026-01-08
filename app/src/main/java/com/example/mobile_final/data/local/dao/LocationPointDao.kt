@@ -30,4 +30,7 @@ interface LocationPointDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(locationPoint: LocationPointEntity): Long
+
+    @Query("DELETE FROM location_points")
+    suspend fun deleteAllLocationPoints()
 }

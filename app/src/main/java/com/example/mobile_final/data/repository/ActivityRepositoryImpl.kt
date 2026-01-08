@@ -5,30 +5,75 @@ import com.example.mobile_final.data.local.dao.LocationPointDao
 import com.example.mobile_final.domain.model.Activity
 import com.example.mobile_final.domain.model.LocationPoint
 import com.example.mobile_final.domain.repository.ActivityRepository
+import com.example.mobile_final.domain.repository.AuthRepository
+import com.example.mobile_final.domain.repository.UserDataRepository
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 class ActivityRepositoryImpl @Inject constructor(
     private val activityDao: ActivityDao,
-    private val locationPointDao: LocationPointDao
+    private val locationPointDao: LocationPointDao,
+    private val userDataRepository: UserDataRepository,
+    private val authRepository: AuthRepository
 ) : ActivityRepository {
+
+    /**
+     * Sync activity to cloud if user is signed in.
+     * Runs asynchronously to avoid blocking local operations.
+     */
+    private fun syncToCloud(activity: Activity, locationPoints: List<LocationPoint>) {
+        val userId = authRepository.getCurrentUser()?.uid ?: return
+        CoroutineScope(Dispatchers.IO).launch {
+            userDataRepository.backupActivity(userId, activity, locationPoints)
+                .onSuccess {
+                    // Mark activity as synced in local database
+                    activityDao.markAsSynced(activity.id)
+                }
+        }
+    }
+
+    /**
+     * Delete activity backup from cloud if user is signed in.
+     * Runs asynchronously to avoid blocking local operations.
+     */
+    private fun deleteFromCloud(activity: Activity) {
+        val userId = authRepository.getCurrentUser()?.uid ?: return
+        CoroutineScope(Dispatchers.IO).launch {
+            userDataRepository.deleteActivityBackup(userId, activity.startTime)
+        }
+    }
 
     // Activity CRUD
     override suspend fun insertActivity(activity: Activity): Long {
-        return activityDao.insertActivity(activity.toEntity())
+        val id = activityDao.insertActivity(activity.toEntity())
+        // Sync to cloud after successful local insert
+        val locationPoints = locationPointDao.getLocationPointsForActivity(id).map { LocationPoint.fromEntity(it) }
+        syncToCloud(activity.copy(id = id), locationPoints)
+        return id
     }
 
     override suspend fun updateActivity(activity: Activity) {
         activityDao.updateActivity(activity.toEntity())
+        // Sync updated activity to cloud
+        val locationPoints = locationPointDao.getLocationPointsForActivity(activity.id).map { LocationPoint.fromEntity(it) }
+        syncToCloud(activity, locationPoints)
     }
 
     override suspend fun deleteActivity(activity: Activity) {
         activityDao.deleteActivity(activity.toEntity())
+        // Delete from cloud backup
+        deleteFromCloud(activity)
     }
 
     override suspend fun deleteActivityById(id: Long) {
+        // Get activity before deleting to sync with cloud
+        val activity = activityDao.getActivityById(id)?.let { Activity.fromEntity(it) }
         activityDao.deleteActivityById(id)
+        activity?.let { deleteFromCloud(it) }
     }
 
     override suspend fun getActivityById(id: Long): Activity? {
@@ -126,5 +171,18 @@ class ActivityRepositoryImpl @Inject constructor(
 
     override suspend fun updateActivityPublicStatus(activityId: Long, isPublic: Boolean) {
         activityDao.updateActivityPublicStatus(activityId, isPublic)
+    }
+
+    override suspend fun getSyncedActivityCount(): Int {
+        return activityDao.getSyncedActivityCount()
+    }
+
+    override suspend fun getTotalActivityCount(): Int {
+        return activityDao.getTotalActivityCount()
+    }
+
+    override suspend fun clearAllData() {
+        locationPointDao.deleteAllLocationPoints()
+        activityDao.deleteAllActivities()
     }
 }

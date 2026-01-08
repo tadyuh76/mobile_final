@@ -1,17 +1,24 @@
 package com.example.mobile_final.data.repository
 
 import android.content.Context
+import android.util.Log
 import com.example.mobile_final.R
+import com.example.mobile_final.data.local.dao.ActivityDao
+import com.example.mobile_final.data.local.dao.LocationPointDao
 import com.example.mobile_final.domain.repository.AuthRepository
+import com.example.mobile_final.domain.repository.UserDataRepository
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.GoogleAuthProvider
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -19,8 +26,15 @@ import javax.inject.Singleton
 @Singleton
 class AuthRepositoryImpl @Inject constructor(
     private val firebaseAuth: FirebaseAuth,
-    @ApplicationContext private val context: Context
+    @ApplicationContext private val context: Context,
+    private val userDataRepository: UserDataRepository,
+    private val activityDao: ActivityDao,
+    private val locationPointDao: LocationPointDao
 ) : AuthRepository {
+
+    companion object {
+        private const val TAG = "AuthRepository"
+    }
 
     override val currentUser: Flow<FirebaseUser?> = callbackFlow {
         val listener = FirebaseAuth.AuthStateListener { auth ->
@@ -37,11 +51,58 @@ class AuthRepositoryImpl @Inject constructor(
         return try {
             val credential = GoogleAuthProvider.getCredential(idToken, null)
             val result = firebaseAuth.signInWithCredential(credential).await()
-            result.user?.let {
-                Result.success(it)
+            result.user?.let { user ->
+                // Restore user data from cloud after successful sign-in
+                restoreUserDataFromCloud(user.uid)
+                Result.success(user)
             } ?: Result.failure(Exception("Sign in failed"))
         } catch (e: Exception) {
             Result.failure(e)
+        }
+    }
+
+    /**
+     * Restores user activity data from Firestore to local database.
+     * Runs asynchronously to avoid blocking the sign-in flow.
+     * Uses startTime as unique key to avoid duplicates.
+     */
+    private fun restoreUserDataFromCloud(userId: String) {
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                // Clear any existing local data first to prevent mixing users' data
+                Log.d(TAG, "Clearing local database before restore")
+                activityDao.deleteAllActivities()
+                locationPointDao.deleteAllLocationPoints()
+
+                userDataRepository.restoreUserActivities(userId)
+                    .onSuccess { cloudActivities ->
+                        Log.d(TAG, "Restoring ${cloudActivities.size} activities from cloud")
+
+                        cloudActivities.forEach { (activity, locationPoints) ->
+                            try {
+                                // Insert activity
+                                val activityId = activityDao.insertActivity(activity.toEntity())
+
+                                // Insert location points with correct activity ID
+                                val pointsWithActivityId = locationPoints.map { point ->
+                                    point.copy(activityId = activityId).toEntity()
+                                }
+                                locationPointDao.insertLocationPoints(pointsWithActivityId)
+
+                                Log.d(TAG, "Restored activity from ${activity.startTime}")
+                            } catch (e: Exception) {
+                                Log.e(TAG, "Failed to restore activity: ${e.message}")
+                            }
+                        }
+
+                        Log.d(TAG, "Data restore completed - ${cloudActivities.size} activities")
+                    }
+                    .onFailure { e ->
+                        Log.e(TAG, "Failed to restore user data: ${e.message}")
+                    }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error during data restoration: ${e.message}")
+            }
         }
     }
 

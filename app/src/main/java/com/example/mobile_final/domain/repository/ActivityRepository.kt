@@ -36,4 +36,11 @@ interface ActivityRepository {
     // Social feed
     fun getAllActivitiesWithLocationPoints(): Flow<List<Pair<Activity, List<LocationPoint>>>>
     suspend fun updateActivityPublicStatus(activityId: Long, isPublic: Boolean)
+
+    // Sync statistics
+    suspend fun getSyncedActivityCount(): Int
+    suspend fun getTotalActivityCount(): Int
+
+    // Clear all data (for account switching)
+    suspend fun clearAllData()
 }

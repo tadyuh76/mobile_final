@@ -2,6 +2,7 @@ package com.example.mobile_final.ui.screen.profile
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.mobile_final.domain.repository.ActivityRepository
 import com.example.mobile_final.domain.repository.AuthRepository
 import com.example.mobile_final.domain.repository.BackupInfo
 import com.example.mobile_final.domain.repository.SyncRepository
@@ -13,6 +14,14 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+data class SyncStatus(
+    val syncedCount: Int = 0,
+    val totalCount: Int = 0
+) {
+    val isSynced: Boolean get() = syncedCount == totalCount && totalCount > 0
+    val syncPercentage: Int get() = if (totalCount > 0) (syncedCount * 100 / totalCount) else 0
+}
+
 data class ProfileUiState(
     val user: FirebaseUser? = null,
     val isSignedIn: Boolean = false,
@@ -20,6 +29,7 @@ data class ProfileUiState(
     val isBackingUp: Boolean = false,
     val isRestoring: Boolean = false,
     val backupInfo: BackupInfo? = null,
+    val syncStatus: SyncStatus = SyncStatus(),
     val message: String? = null,
     val error: String? = null
 )
@@ -27,7 +37,8 @@ data class ProfileUiState(
 @HiltViewModel
 class ProfileViewModel @Inject constructor(
     private val authRepository: AuthRepository,
-    private val syncRepository: SyncRepository
+    private val syncRepository: SyncRepository,
+    private val activityRepository: ActivityRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ProfileUiState())
@@ -35,6 +46,7 @@ class ProfileViewModel @Inject constructor(
 
     init {
         observeAuthState()
+        loadSyncStatus()
     }
 
     private fun observeAuthState() {
@@ -46,8 +58,19 @@ class ProfileViewModel @Inject constructor(
                 )
                 if (user != null) {
                     loadBackupInfo()
+                    loadSyncStatus()
                 }
             }
+        }
+    }
+
+    private fun loadSyncStatus() {
+        viewModelScope.launch {
+            val syncedCount = activityRepository.getSyncedActivityCount()
+            val totalCount = activityRepository.getTotalActivityCount()
+            _uiState.value = _uiState.value.copy(
+                syncStatus = SyncStatus(syncedCount, totalCount)
+            )
         }
     }
 
@@ -100,6 +123,7 @@ class ProfileViewModel @Inject constructor(
                         message = "Backed up $count activities"
                     )
                     loadBackupInfo()
+                    loadSyncStatus()
                 },
                 onFailure = { exception ->
                     _uiState.value = _uiState.value.copy(
@@ -123,6 +147,7 @@ class ProfileViewModel @Inject constructor(
                         isRestoring = false,
                         message = "Restored $count activities"
                     )
+                    loadSyncStatus()
                 },
                 onFailure = { exception ->
                     _uiState.value = _uiState.value.copy(

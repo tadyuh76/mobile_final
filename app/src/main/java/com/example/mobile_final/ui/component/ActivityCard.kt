@@ -12,6 +12,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.DirectionsRun
+import androidx.compose.material.icons.filled.Cloud
+import androidx.compose.material.icons.filled.CloudDone
+import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.DirectionsBike
 import androidx.compose.material.icons.filled.DirectionsWalk
 import androidx.compose.material.icons.filled.LocalFireDepartment
@@ -94,11 +97,26 @@ fun ActivityCard(
                             fontWeight = FontWeight.SemiBold
                         )
                     }
-                    Text(
-                        text = FormatUtils.formatRelativeDate(activity.startTime),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        // Sync status indicator
+                        Icon(
+                            imageVector = if (activity.isSynced) Icons.Default.CloudDone else Icons.Default.Cloud,
+                            contentDescription = if (activity.isSynced) "Synced to cloud" else "Syncing...",
+                            modifier = Modifier.size(12.dp),
+                            tint = if (activity.isSynced)
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
+                            else
+                                MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                        )
+                        Text(
+                            text = FormatUtils.formatRelativeDate(activity.startTime),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
 
                 // Stats Row
