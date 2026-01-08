@@ -7,6 +7,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -74,6 +75,7 @@ import com.mapbox.maps.extension.compose.annotation.generated.PolylineAnnotation
 import com.mapbox.maps.extension.compose.style.MapStyle
 import com.mapbox.maps.plugin.locationcomponent.createDefault2DPuck
 import com.mapbox.maps.plugin.locationcomponent.location
+import com.mapbox.maps.plugin.compass.compass
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -167,8 +169,13 @@ fun TrackingScreen(
                 mapViewportState = mapViewportState,
                 style = { MapStyle(style = "mapbox://styles/mapbox/streets-v12") }
             ) {
-                // Enable location component
+                // Enable location component and configure compass
                 MapEffect(Unit) { mapView ->
+                    // Disable default compass to use custom buttons
+                    mapView.compass.updateSettings {
+                        enabled = false
+                    }
+
                     mapView.location.updateSettings {
                         enabled = true
                         locationPuck = createDefault2DPuck(withBearing = true)
@@ -202,28 +209,33 @@ fun TrackingScreen(
                 }
             }
 
-            // My Location Button (top-right)
-            SmallFloatingActionButton(
-                onClick = {
-                    currentUserLocation?.let { location ->
-                        mapViewportState.flyTo(
-                            com.mapbox.maps.CameraOptions.Builder()
-                                .center(location)
-                                .zoom(16.0)
-                                .build()
-                        )
-                    }
-                },
+            // Map control buttons (top)
+            Row(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
                     .padding(16.dp),
-                containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
-                contentColor = MaterialTheme.colorScheme.primary
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Icon(
-                    imageVector = Icons.Default.MyLocation,
-                    contentDescription = "My Location"
-                )
+                // My Location Button
+                SmallFloatingActionButton(
+                    onClick = {
+                        currentUserLocation?.let { location ->
+                            mapViewportState.flyTo(
+                                com.mapbox.maps.CameraOptions.Builder()
+                                    .center(location)
+                                    .zoom(16.0)
+                                    .build()
+                            )
+                        }
+                    },
+                    containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
+                    contentColor = MaterialTheme.colorScheme.primary
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.MyLocation,
+                        contentDescription = "My Location"
+                    )
+                }
             }
 
             // Stats Card - positioned lower to avoid blocking map content
@@ -236,23 +248,17 @@ fun TrackingScreen(
                 )
             }
 
-            // Controls at bottom
+            // Control Buttons - positioned higher when type selector is visible
             Column(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .padding(16.dp),
+                    .padding(
+                        bottom = if (!trackingState.isTracking) 96.dp else 16.dp,
+                        start = 16.dp,
+                        end = 16.dp
+                    ),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Activity Type Selector (only show when not tracking)
-                if (!trackingState.isTracking) {
-                    ActivityTypeSelector(
-                        selectedType = selectedActivityType,
-                        onTypeSelected = { viewModel.setActivityType(it) },
-                        modifier = Modifier.padding(bottom = 16.dp)
-                    )
-                }
-
-                // Control Buttons
                 ControlButtons(
                     isTracking = trackingState.isTracking,
                     isPaused = trackingState.isPaused,
@@ -261,6 +267,15 @@ fun TrackingScreen(
                     onPause = { viewModel.pauseTracking() },
                     onResume = { viewModel.resumeTracking() },
                     onStop = { showStopConfirmDialog = true }
+                )
+            }
+
+            // Activity Type Selector - full width at bottom like bottom nav (only show when not tracking)
+            if (!trackingState.isTracking) {
+                ActivityTypeSelectorBottomBar(
+                    selectedType = selectedActivityType,
+                    onTypeSelected = { viewModel.setActivityType(it) },
+                    modifier = Modifier.align(Alignment.BottomCenter)
                 )
             }
         }
@@ -434,6 +449,61 @@ private fun ActivityTypeSelector(
                         )
                     }
                 )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ActivityTypeSelectorBottomBar(
+    selectedType: ActivityType,
+    onTypeSelected: (ActivityType) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier
+            .fillMaxWidth(),
+        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 16.dp, horizontal = 8.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            ActivityType.entries.forEach { type ->
+                val isSelected = selectedType == type
+                val color = if (isSelected) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                }
+
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clickable { onTypeSelected(type) }
+                        .padding(vertical = 8.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Icon(
+                        imageVector = getActivityIcon(type),
+                        contentDescription = type.displayName,
+                        tint = color,
+                        modifier = Modifier.size(28.dp)
+                    )
+                    Text(
+                        text = type.displayName,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                        color = color
+                    )
+                }
             }
         }
     }
