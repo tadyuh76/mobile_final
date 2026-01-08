@@ -50,6 +50,8 @@ import com.patrykandpatrick.vico.compose.cartesian.layer.rememberColumnCartesian
 import com.patrykandpatrick.vico.compose.cartesian.layer.rememberLineCartesianLayer
 import com.patrykandpatrick.vico.compose.cartesian.rememberCartesianChart
 import com.patrykandpatrick.vico.compose.common.component.rememberLineComponent
+import com.patrykandpatrick.vico.compose.common.component.rememberTextComponent
+import androidx.compose.ui.unit.sp
 import com.patrykandpatrick.vico.core.cartesian.axis.HorizontalAxis
 import com.patrykandpatrick.vico.core.cartesian.axis.VerticalAxis
 import com.patrykandpatrick.vico.core.cartesian.data.CartesianChartModelProducer
@@ -290,6 +292,7 @@ private fun WeeklyDistanceChart(
                 }
 
                 val primaryColor = MaterialTheme.colorScheme.primary
+                val labelColor = MaterialTheme.colorScheme.onSurface
                 val bottomAxisValueFormatter = CartesianValueFormatter { _, x, _ ->
                     dailyStats.getOrNull(x.toInt())?.shortDay ?: ""
                 }
@@ -306,10 +309,16 @@ private fun WeeklyDistanceChart(
                             )
                         ),
                         startAxis = VerticalAxis.rememberStart(
-                            itemPlacer = VerticalAxis.ItemPlacer.count({ 5 })
+                            itemPlacer = VerticalAxis.ItemPlacer.count({ 5 }),
+                            label = rememberTextComponent(color = labelColor, textSize = 12.sp),
+                            tick = rememberLineComponent(color = labelColor.copy(alpha = 0.3f), thickness = 1.dp),
+                            guideline = rememberLineComponent(color = labelColor.copy(alpha = 0.1f), thickness = 1.dp)
                         ),
                         bottomAxis = HorizontalAxis.rememberBottom(
-                            valueFormatter = bottomAxisValueFormatter
+                            valueFormatter = bottomAxisValueFormatter,
+                            label = rememberTextComponent(color = labelColor, textSize = 12.sp),
+                            tick = rememberLineComponent(color = labelColor.copy(alpha = 0.3f), thickness = 1.dp),
+                            guideline = rememberLineComponent(color = labelColor.copy(alpha = 0.1f), thickness = 1.dp)
                         )
                     ),
                     modelProducer = modelProducer,
@@ -367,6 +376,7 @@ private fun MonthlyTrendChart(
                     }
                 }
 
+                val labelColor = MaterialTheme.colorScheme.onSurface
                 val bottomAxisValueFormatter = CartesianValueFormatter { _, x, _ ->
                     "W${weeklyStats.getOrNull(x.toInt())?.weekNumber ?: ""}"
                 }
@@ -375,10 +385,16 @@ private fun MonthlyTrendChart(
                     chart = rememberCartesianChart(
                         rememberLineCartesianLayer(),
                         startAxis = VerticalAxis.rememberStart(
-                            itemPlacer = VerticalAxis.ItemPlacer.count({ 5 })
+                            itemPlacer = VerticalAxis.ItemPlacer.count({ 5 }),
+                            label = rememberTextComponent(color = labelColor, textSize = 12.sp),
+                            tick = rememberLineComponent(color = labelColor.copy(alpha = 0.3f), thickness = 1.dp),
+                            guideline = rememberLineComponent(color = labelColor.copy(alpha = 0.1f), thickness = 1.dp)
                         ),
                         bottomAxis = HorizontalAxis.rememberBottom(
-                            valueFormatter = bottomAxisValueFormatter
+                            valueFormatter = bottomAxisValueFormatter,
+                            label = rememberTextComponent(color = labelColor, textSize = 12.sp),
+                            tick = rememberLineComponent(color = labelColor.copy(alpha = 0.3f), thickness = 1.dp),
+                            guideline = rememberLineComponent(color = labelColor.copy(alpha = 0.1f), thickness = 1.dp)
                         )
                     ),
                     modelProducer = modelProducer,
