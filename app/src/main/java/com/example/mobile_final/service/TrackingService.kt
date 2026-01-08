@@ -371,15 +371,53 @@ class TrackingService : LifecycleService(), SensorEventListener {
     }
 
     private fun calculateCalories(distanceMeters: Double, activityType: ActivityType): Int {
-        // Simple calorie calculation based on activity type and distance
-        // MET values: Running ~10, Walking ~3.5, Cycling ~7
-        val metValue = when (activityType) {
-            ActivityType.RUNNING -> 10.0
-            ActivityType.WALKING -> 3.5
-            ActivityType.CYCLING -> 7.0
-        }
+        /**
+         * More accurate MET-based calorie calculation:
+         * Calories = MET × weight(kg) × duration(hours)
+         *
+         * MET values based on activity intensity:
+         * - Walking (3-4 km/h): MET 3.5
+         * - Walking (5-6 km/h): MET 4.5
+         * - Running (8 km/h): MET 8.0
+         * - Running (10 km/h): MET 10.0
+         * - Running (12+ km/h): MET 12.5
+         * - Cycling (16-19 km/h): MET 6.8
+         * - Cycling (20-25 km/h): MET 8.0
+         * - Cycling (26+ km/h): MET 10.0
+         */
+
         val durationHours = calculateDuration() / 3600000.0
-        return (metValue * userWeightKg * durationHours).roundToInt()
+
+        if (durationHours == 0.0) return 0
+
+        // Calculate speed in km/h
+        val speedKmh = (distanceMeters / 1000.0) / durationHours
+
+        // Determine MET value based on activity type and speed
+        val met = when (activityType) {
+            ActivityType.WALKING -> when {
+                speedKmh < 4.0 -> 3.5   // Slow walk
+                speedKmh < 5.5 -> 4.5   // Moderate walk
+                speedKmh < 7.0 -> 5.5   // Brisk walk
+                else -> 7.0             // Very brisk walk/light jog
+            }
+            ActivityType.RUNNING -> when {
+                speedKmh < 8.0 -> 8.0    // Light jogging
+                speedKmh < 10.0 -> 10.0  // Moderate running
+                speedKmh < 12.0 -> 11.5  // Fast running
+                speedKmh < 14.0 -> 12.5  // Very fast running
+                else -> 14.0             // Sprinting
+            }
+            ActivityType.CYCLING -> when {
+                speedKmh < 16.0 -> 4.0   // Leisurely cycling
+                speedKmh < 20.0 -> 6.8   // Moderate cycling
+                speedKmh < 26.0 -> 8.0   // Vigorous cycling
+                speedKmh < 32.0 -> 10.0  // Very vigorous cycling
+                else -> 12.0             // Racing
+            }
+        }
+
+        return (met * userWeightKg * durationHours).roundToInt()
     }
 
     private fun createNotification(): android.app.Notification {
@@ -399,7 +437,11 @@ class TrackingService : LifecycleService(), SensorEventListener {
             .setContentText("$duration • $distance")
             .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setContentIntent(pendingIntent)
-            .setOngoing(true)
+            .setOngoing(true)  // Makes notification non-dismissible during active tracking
+            .setAutoCancel(false)  // Prevents notification from auto-canceling on tap
+            .setOnlyAlertOnce(true)  // Prevents notification sound/vibration on every update
+            .setPriority(NotificationCompat.PRIORITY_HIGH)  // Keeps notification visible
+            .setCategory(NotificationCompat.CATEGORY_SERVICE)  // Indicates ongoing service
             .build()
     }
 
