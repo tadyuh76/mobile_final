@@ -25,12 +25,16 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.mobile_final.data.local.entity.ActivityType
 import com.example.mobile_final.domain.model.Activity
 import com.example.mobile_final.util.FormatUtils
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @Composable
 fun ActivityCard(
@@ -38,6 +42,8 @@ fun ActivityCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val timeOfDayColor = getTimeOfDayColor(activity.startTime)
+
     Card(
         modifier = modifier
             .fillMaxWidth()
@@ -72,11 +78,22 @@ fun ActivityCard(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = "${FormatUtils.getTimeOfDay(activity.startTime)} ${activity.type.displayName}",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text(
+                            text = FormatUtils.getTimeOfDay(activity.startTime),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = timeOfDayColor
+                        )
+                        Text(
+                            text = activity.type.displayName,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
                     Text(
                         text = FormatUtils.formatRelativeDate(activity.startTime),
                         style = MaterialTheme.typography.bodySmall,
@@ -164,5 +181,19 @@ private fun StatChip(
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
+    }
+}
+
+@Composable
+private fun getTimeOfDayColor(timestamp: Long): Color {
+    val sdf = SimpleDateFormat("HH", Locale.getDefault())
+    val hour = sdf.format(Date(timestamp)).toInt()
+
+    return when {
+        hour < 6 -> Color(0xFF5E35B1)      // Night - Deep Purple
+        hour < 12 -> Color(0xFFFFB300)    // Morning - Amber
+        hour < 17 -> Color(0xFFFF6F00)    // Afternoon - Deep Orange
+        hour < 21 -> Color(0xFFE91E63)    // Evening - Pink
+        else -> Color(0xFF5E35B1)         // Night - Deep Purple
     }
 }
