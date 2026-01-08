@@ -2,13 +2,17 @@ package com.example.mobile_final.ui.screen.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.mobile_final.domain.model.Activity
+import com.example.mobile_final.domain.model.LocationPoint
 import com.example.mobile_final.domain.repository.ActiveSessionRepository
 import com.example.mobile_final.domain.repository.ActivityRepository
 import com.example.mobile_final.service.TrackingState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.util.Calendar
 import javax.inject.Inject
@@ -35,8 +39,23 @@ class HomeViewModel @Inject constructor(
     // Expose active tracking session state for the UI
     val activeTrackingState: StateFlow<TrackingState> = activeSessionRepository.trackingState
 
+    // Expose activities with location points for social feed display
+    val activitiesWithLocations: StateFlow<List<Pair<Activity, List<LocationPoint>>>> =
+        activityRepository.getAllActivitiesWithLocationPoints()
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5000),
+                initialValue = emptyList()
+            )
+
     init {
         loadStats()
+    }
+
+    fun toggleActivityPublic(activityId: Long, isPublic: Boolean) {
+        viewModelScope.launch {
+            activityRepository.updateActivityPublicStatus(activityId, isPublic)
+        }
     }
 
     fun loadStats() {

@@ -4,7 +4,6 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
@@ -13,8 +12,6 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -26,32 +23,34 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.DirectionsRun
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.DirectionsBike
 import androidx.compose.material.icons.filled.DirectionsRun
 import androidx.compose.material.icons.filled.DirectionsWalk
-import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.ShowChart
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LargeFloatingActionButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -63,13 +62,14 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.mobile_final.data.local.entity.ActivityType
 import com.example.mobile_final.service.TrackingState
+import com.example.mobile_final.ui.component.SocialPostCard
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -79,12 +79,15 @@ fun HomeScreen(
     onNavigateToStats: () -> Unit,
     onNavigateToSettings: () -> Unit,
     onNavigateToProfile: () -> Unit = {},
+    onNavigateToDetail: (Long) -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val activeTrackingState by viewModel.activeTrackingState.collectAsState()
-    var isVisible by remember { mutableStateOf(false) }
+    val activitiesWithLocations by viewModel.activitiesWithLocations.collectAsState()
     val lifecycleOwner = LocalLifecycleOwner.current
+
+    var activityToShare by remember { mutableStateOf<Pair<Long, Boolean>?>(null) }
 
     // Refresh stats when screen becomes visible (including when navigating back)
     DisposableEffect(lifecycleOwner) {
@@ -99,21 +102,17 @@ fun HomeScreen(
         }
     }
 
-    LaunchedEffect(Unit) {
-        isVisible = true
+    // Share confirmation dialog
+    activityToShare?.let { (activityId, isCurrentlyPublic) ->
+        ShareConfirmationDialog(
+            isSharing = isCurrentlyPublic,
+            onConfirm = {
+                viewModel.toggleActivityPublic(activityId, !isCurrentlyPublic)
+                activityToShare = null
+            },
+            onDismiss = { activityToShare = null }
+        )
     }
-
-    // Animated scale for start button
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
-    val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.92f else 1f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessLow
-        ),
-        label = "scale"
-    )
 
     Scaffold(
         topBar = {
@@ -124,11 +123,11 @@ fun HomeScreen(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Icon(
-                            imageVector = Icons.Default.DirectionsRun,
+                            imageVector = Icons.Default.FitnessCenter,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.primary
                         )
-                        Text("Run Tracker")
+                        Text("My Activities")
                     }
                 },
                 actions = {
@@ -146,211 +145,120 @@ fun HomeScreen(
                     }
                 }
             )
+        },
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = onStartTracking,
+                containerColor = MaterialTheme.colorScheme.primary
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = "Start Activity"
+                )
+            }
         }
     ) { paddingValues ->
-        Column(
+        PullToRefreshBox(
+            isRefreshing = uiState.isLoading,
+            onRefresh = { viewModel.loadStats() },
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Active Session Card (shown when tracking is in progress)
-            AnimatedVisibility(
-                visible = activeTrackingState.isTracking,
-                enter = fadeIn() + slideInVertically(
-                    initialOffsetY = { -40 },
-                    animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy)
-                )
+            LazyColumn(
+                modifier = Modifier.fillMaxSize()
             ) {
-                ActiveSessionCard(
-                    trackingState = activeTrackingState,
-                    onClick = onStartTracking, // Navigate to tracking screen
-                    modifier = Modifier.padding(bottom = 16.dp)
-                )
-            }
-
-            // Today's Stats Card with animation
-            AnimatedVisibility(
-                visible = isVisible,
-                enter = fadeIn() + slideInVertically(
-                    initialOffsetY = { -40 },
-                    animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy)
-                )
-            ) {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant
-                    )
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp)
-                    ) {
-                        Text(
-                            text = "Today",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceEvenly
+                // Active Session Card (shown when tracking is in progress)
+                if (activeTrackingState.isTracking) {
+                    item {
+                        AnimatedVisibility(
+                            visible = activeTrackingState.isTracking,
+                            enter = fadeIn() + slideInVertically(
+                                initialOffsetY = { -40 },
+                                animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy)
+                            )
                         ) {
-                            StatItem(
-                                label = "Distance",
-                                value = String.format("%.2f km", uiState.todayDistanceKm)
-                            )
-                            StatItem(
-                                label = "Time",
-                                value = formatDuration(uiState.todayDurationSeconds)
-                            )
-                            StatItem(
-                                label = "Calories",
-                                value = "${uiState.todayCalories}"
+                            ActiveSessionCard(
+                                trackingState = activeTrackingState,
+                                onClick = onStartTracking,
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp)
                             )
                         }
                     }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // Weekly Stats Card with animation
-            AnimatedVisibility(
-                visible = isVisible,
-                enter = fadeIn() + slideInVertically(
-                    initialOffsetY = { -40 },
-                    animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioMediumBouncy,
-                        stiffness = Spring.StiffnessLow
-                    )
-                )
-            ) {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant
-                    )
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp)
-                    ) {
-                        Text(
-                            text = "This Week",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
+                } else {
+                    item {
                         Spacer(modifier = Modifier.height(12.dp))
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceEvenly
+                    }
+                }
+
+                // Empty state when no activities
+                if (activitiesWithLocations.isEmpty()) {
+                    item {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 120.dp),
+                            contentAlignment = Alignment.Center
                         ) {
-                            StatItem(
-                                label = "Distance",
-                                value = String.format("%.2f km", uiState.weeklyDistanceKm)
-                            )
-                            StatItem(
-                                label = "Activities",
-                                value = "${uiState.weeklyActivityCount}"
-                            )
-                            StatItem(
-                                label = "Calories",
-                                value = "${uiState.weeklyCalories}"
-                            )
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                modifier = Modifier.padding(32.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.FitnessCenter,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(64.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                                )
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Text(
+                                    text = "No Activities Yet",
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = "Start your first activity to see it here!",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    textAlign = TextAlign.Center
+                                )
+                            }
                         }
                     }
                 }
-            }
 
-            Spacer(modifier = Modifier.weight(1f))
-
-            // Start Button with scale animation
-            LargeFloatingActionButton(
-                onClick = onStartTracking,
-                shape = CircleShape,
-                containerColor = MaterialTheme.colorScheme.primary,
-                interactionSource = interactionSource,
-                modifier = Modifier
-                    .size(96.dp)
-                    .scale(scale)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.PlayArrow,
-                    contentDescription = "Start Activity",
-                    modifier = Modifier.size(48.dp)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(32.dp))
-
-            // Bottom Navigation Buttons
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
-                FloatingActionButton(
-                    onClick = onNavigateToHistory,
-                    containerColor = MaterialTheme.colorScheme.secondaryContainer
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.History,
-                        contentDescription = "History"
+                // Activity Feed
+                items(
+                    items = activitiesWithLocations,
+                    key = { (activity, _) -> activity.id }
+                ) { (activity, locationPoints) ->
+                    SocialPostCard(
+                        activity = activity,
+                        locationPoints = locationPoints,
+                        userDisplayName = null,
+                        isOwnActivity = true,
+                        onShareClick = {
+                            activityToShare = Pair(activity.id, activity.isPublic)
+                        },
+                        onClick = {
+                            onNavigateToDetail(activity.id)
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 12.dp, vertical = 6.dp)
                     )
                 }
-                FloatingActionButton(
-                    onClick = onNavigateToStats,
-                    containerColor = MaterialTheme.colorScheme.secondaryContainer
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.ShowChart,
-                        contentDescription = "Statistics"
-                    )
+
+                item {
+                    Spacer(modifier = Modifier.height(12.dp))
                 }
             }
-
-            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }
 
-@Composable
-private fun StatItem(
-    label: String,
-    value: String
-) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(
-            text = value,
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary
-        )
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    }
-}
-
-private fun formatDuration(seconds: Long): String {
-    val hours = seconds / 3600
-    val minutes = (seconds % 3600) / 60
-    return if (hours > 0) {
-        String.format("%dh %dm", hours, minutes)
-    } else {
-        String.format("%dm", minutes)
-    }
-}
 
 @Composable
 private fun ActiveSessionCard(
@@ -535,4 +443,38 @@ private fun formatPace(secondsPerKm: Double): String {
     val minutes = (secondsPerKm / 60).toInt()
     val seconds = (secondsPerKm % 60).toInt()
     return String.format("%d:%02d/km", minutes, seconds)
+}
+
+@Composable
+private fun ShareConfirmationDialog(
+    isSharing: Boolean,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(if (isSharing) "Unshare Activity" else "Share Activity") },
+        text = {
+            Text(
+                if (isSharing) {
+                    "Remove this activity from the public social feed? You can share it again later."
+                } else {
+                    "Share this activity to the public social feed? Other users will be able to see your route, stats, and display name."
+                }
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = onConfirm) {
+                Text(
+                    if (isSharing) "Unshare" else "Share",
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
 }

@@ -86,6 +86,7 @@ fun DetailScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var showDeleteDialog by remember { mutableStateOf(false) }
+    var showShareDialog by remember { mutableStateOf(false) }
 
     if (showDeleteDialog) {
         DeleteConfirmationDialog(
@@ -95,6 +96,17 @@ fun DetailScreen(
                 onNavigateBack()
             },
             onDismiss = { showDeleteDialog = false }
+        )
+    }
+
+    if (showShareDialog) {
+        ShareConfirmationDialog(
+            isSharing = uiState.activity?.isPublic ?: false,
+            onConfirm = {
+                viewModel.toggleShareActivity()
+                showShareDialog = false
+            },
+            onDismiss = { showShareDialog = false }
         )
     }
 
@@ -144,7 +156,9 @@ fun DetailScreen(
                 PostStyleContent(
                     activity = uiState.activity!!,
                     locationPoints = uiState.locationPoints,
+                    isSharing = uiState.isSharingInProgress,
                     onDeleteClick = { showDeleteDialog = true },
+                    onShareClick = { showShareDialog = true },
                     modifier = Modifier.padding(paddingValues)
                 )
             }
@@ -156,7 +170,9 @@ fun DetailScreen(
 private fun PostStyleContent(
     activity: Activity,
     locationPoints: List<LocationPoint>,
+    isSharing: Boolean,
     onDeleteClick: () -> Unit,
+    onShareClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -211,7 +227,11 @@ private fun PostStyleContent(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 // Action Bar (like, share, etc.)
-                ActionBar()
+                ActionBar(
+                    activity = activity,
+                    isSharing = isSharing,
+                    onShareClick = onShareClick
+                )
 
                 Spacer(modifier = Modifier.height(12.dp))
             }
@@ -658,7 +678,11 @@ private fun WeatherChip(
 }
 
 @Composable
-private fun ActionBar() {
+private fun ActionBar(
+    activity: Activity,
+    isSharing: Boolean,
+    onShareClick: () -> Unit
+) {
     HorizontalDivider(
         modifier = Modifier.padding(horizontal = 16.dp),
         color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
@@ -671,29 +695,56 @@ private fun ActionBar() {
         horizontalArrangement = Arrangement.SpaceEvenly
     ) {
         TextButton(
-            onClick = { /* Like functionality */ }
+            onClick = onShareClick,
+            enabled = !isSharing
         ) {
             Icon(
-                imageVector = Icons.Default.FavoriteBorder,
-                contentDescription = "Like",
+                imageVector = if (activity.isPublic) Icons.Default.Share else Icons.Default.Share,
+                contentDescription = if (activity.isPublic) "Unshare" else "Share to Social",
+                tint = if (activity.isPublic) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.size(20.dp)
             )
             Spacer(modifier = Modifier.width(4.dp))
-            Text("Like")
-        }
-
-        TextButton(
-            onClick = { /* Share functionality */ }
-        ) {
-            Icon(
-                imageVector = Icons.Default.Share,
-                contentDescription = "Share",
-                modifier = Modifier.size(20.dp)
+            Text(
+                text = if (isSharing) "..." else if (activity.isPublic) "Shared" else "Share",
+                color = if (activity.isPublic) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
             )
-            Spacer(modifier = Modifier.width(4.dp))
-            Text("Share")
         }
     }
+}
+
+@Composable
+private fun ShareConfirmationDialog(
+    isSharing: Boolean,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(if (isSharing) "Unshare Activity" else "Share Activity") },
+        text = {
+            Text(
+                if (isSharing) {
+                    "Remove this activity from the public social feed? You can share it again later."
+                } else {
+                    "Share this activity to the public social feed? Other users will be able to see your route, stats, and display name."
+                }
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = onConfirm) {
+                Text(
+                    if (isSharing) "Unshare" else "Share",
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
 }
 
 @Composable

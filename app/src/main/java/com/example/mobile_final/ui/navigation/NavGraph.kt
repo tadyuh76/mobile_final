@@ -12,6 +12,7 @@ import com.example.mobile_final.ui.screen.history.HistoryScreen
 import com.example.mobile_final.ui.screen.home.HomeScreen
 import com.example.mobile_final.ui.screen.profile.ProfileScreen
 import com.example.mobile_final.ui.screen.settings.SettingsScreen
+import com.example.mobile_final.ui.screen.social.SocialScreen
 import com.example.mobile_final.ui.screen.stats.StatsScreen
 import com.example.mobile_final.ui.screen.tracking.TrackingScreen
 
@@ -41,6 +42,9 @@ fun NavGraph(
                 },
                 onNavigateToProfile = {
                     navController.navigate(Screen.Profile.route)
+                },
+                onNavigateToDetail = { activityId ->
+                    navController.navigate(Screen.Detail.createRoute(activityId))
                 }
             )
         }
@@ -54,6 +58,14 @@ fun NavGraph(
                     navController.navigate(Screen.Detail.createRoute(activityId)) {
                         popUpTo(Screen.Home.route)
                     }
+                }
+            )
+        }
+
+        composable(Screen.Social.route) {
+            SocialScreen(
+                onNavigateToDetail = { activityId ->
+                    navController.navigate(Screen.Detail.createRoute(activityId))
                 }
             )
         }
