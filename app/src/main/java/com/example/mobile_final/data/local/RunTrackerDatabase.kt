@@ -17,7 +17,7 @@ import com.example.mobile_final.data.local.entity.UserSettingsEntity
         LocationPointEntity::class,
         UserSettingsEntity::class
     ],
-    version = 2,
+    version = 3,
     exportSchema = false
 )
 abstract class RunTrackerDatabase : RoomDatabase() {
@@ -38,6 +38,15 @@ abstract class RunTrackerDatabase : RoomDatabase() {
                 db.execSQL("ALTER TABLE activities ADD COLUMN weatherCode INTEGER DEFAULT NULL")
                 db.execSQL("ALTER TABLE activities ADD COLUMN weatherWindSpeed REAL DEFAULT NULL")
                 db.execSQL("ALTER TABLE activities ADD COLUMN weatherDescription TEXT DEFAULT NULL")
+            }
+        }
+
+        /**
+         * Migration from version 2 to 3: Add isPublic column to activities table.
+         */
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE activities ADD COLUMN isPublic INTEGER NOT NULL DEFAULT 0")
             }
         }
     }

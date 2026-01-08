@@ -32,4 +32,8 @@ interface ActivityRepository {
     suspend fun getTotalDurationForPeriod(startTime: Long, endTime: Long): Long
     suspend fun getActivityCountForPeriod(startTime: Long, endTime: Long): Int
     suspend fun getTotalCaloriesForPeriod(startTime: Long, endTime: Long): Int
+
+    // Social feed
+    fun getAllActivitiesWithLocationPoints(): Flow<List<Pair<Activity, List<LocationPoint>>>>
+    suspend fun updateActivityPublicStatus(activityId: Long, isPublic: Boolean)
 }

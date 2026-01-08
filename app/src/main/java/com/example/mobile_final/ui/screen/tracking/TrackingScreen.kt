@@ -5,6 +5,8 @@ import android.content.pm.PackageManager
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -19,6 +21,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.DirectionsRun
@@ -26,6 +30,7 @@ import androidx.compose.material.icons.filled.DirectionsBike
 import androidx.compose.material.icons.filled.DirectionsWalk
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
@@ -33,6 +38,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LargeFloatingActionButton
@@ -84,6 +90,7 @@ fun TrackingScreen(
     var hasLocationPermission by remember { mutableStateOf(false) }
     var hasNotificationPermission by remember { mutableStateOf(true) }
     var showStopConfirmDialog by remember { mutableStateOf(false) }
+    var currentUserLocation by remember { mutableStateOf<Point?>(null) }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -167,8 +174,9 @@ fun TrackingScreen(
                         locationPuck = createDefault2DPuck(withBearing = true)
                     }
 
-                    // Center on user location initially
+                    // Track user location and center initially
                     mapView.location.addOnIndicatorPositionChangedListener { point ->
+                        currentUserLocation = point
                         if (!trackingState.isTracking) {
                             mapViewportState.flyTo(
                                 com.mapbox.maps.CameraOptions.Builder()
@@ -194,13 +202,37 @@ fun TrackingScreen(
                 }
             }
 
-            // Stats Card at top
+            // My Location Button (top-right)
+            SmallFloatingActionButton(
+                onClick = {
+                    currentUserLocation?.let { location ->
+                        mapViewportState.flyTo(
+                            com.mapbox.maps.CameraOptions.Builder()
+                                .center(location)
+                                .zoom(16.0)
+                                .build()
+                        )
+                    }
+                },
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(16.dp),
+                containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
+                contentColor = MaterialTheme.colorScheme.primary
+            ) {
+                Icon(
+                    imageVector = Icons.Default.MyLocation,
+                    contentDescription = "My Location"
+                )
+            }
+
+            // Stats Card - positioned lower to avoid blocking map content
             if (trackingState.isTracking) {
                 StatsCard(
                     trackingState = trackingState,
                     modifier = Modifier
                         .align(Alignment.TopCenter)
-                        .padding(16.dp)
+                        .padding(top = 72.dp, start = 16.dp, end = 16.dp)
                 )
             }
 
@@ -257,13 +289,28 @@ private fun StatsCard(
     trackingState: TrackingState,
     modifier: Modifier = Modifier
 ) {
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f)
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+    // Glassmorphism effect: frosted glass appearance with transparency
+    val shape = RoundedCornerShape(24.dp)
+
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .shadow(
+                elevation = 8.dp,
+                shape = shape,
+                ambientColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+            )
+            .clip(shape)
+            .background(
+                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f),
+                shape = shape
+            )
+            .border(
+                width = 1.dp,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f),
+                shape = shape
+            )
     ) {
         Column(
             modifier = Modifier

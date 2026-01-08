@@ -97,4 +97,7 @@ interface ActivityDao {
 
     @Update
     suspend fun update(activity: ActivityEntity)
+
+    @Query("UPDATE activities SET isPublic = :isPublic WHERE id = :activityId")
+    suspend fun updateActivityPublicStatus(activityId: Long, isPublic: Boolean)
 }

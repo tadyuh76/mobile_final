@@ -80,10 +80,19 @@ fun ProfileScreen(
                 val account = task.getResult(ApiException::class.java)
                 account.idToken?.let { idToken ->
                     viewModel.signInWithGoogle(idToken)
-                }
+                } ?: viewModel.setError("Failed to get ID token from Google")
             } catch (e: ApiException) {
-                // Handle error
+                // Map common error codes to user-friendly messages
+                val errorMessage = when (e.statusCode) {
+                    12501 -> "Sign-in was cancelled"
+                    12502 -> "Sign-in is already in progress"
+                    7 -> "Network error. Please check your connection"
+                    else -> "Google Sign-In failed (error: ${e.statusCode})"
+                }
+                viewModel.setError(errorMessage)
             }
+        } else if (result.resultCode == Activity.RESULT_CANCELED) {
+            viewModel.setError("Sign-in was cancelled")
         }
     }
 

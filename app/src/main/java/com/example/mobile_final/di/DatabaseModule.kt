@@ -25,7 +25,10 @@ object DatabaseModule {
             RunTrackerDatabase::class.java,
             RunTrackerDatabase.DATABASE_NAME
         )
-            .addMigrations(RunTrackerDatabase.MIGRATION_1_2)
+            .addMigrations(
+                RunTrackerDatabase.MIGRATION_1_2,
+                RunTrackerDatabase.MIGRATION_2_3
+            )
             .fallbackToDestructiveMigration() // Fallback for future migrations if needed
             .build()
     }

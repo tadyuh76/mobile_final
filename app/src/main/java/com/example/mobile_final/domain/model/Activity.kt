@@ -14,6 +14,7 @@ data class Activity(
     val avgPaceSecondsPerKm: Int = 0,
     val stepCount: Int = 0,
     val isSynced: Boolean = false,
+    val isPublic: Boolean = false,
     // Weather data captured at activity start
     val weatherTemperature: Double? = null,
     val weatherHumidity: Int? = null,
@@ -38,6 +39,7 @@ data class Activity(
             avgPaceSecondsPerKm = avgPaceSecondsPerKm,
             stepCount = stepCount,
             isSynced = isSynced,
+            isPublic = isPublic,
             weatherTemperature = weatherTemperature,
             weatherHumidity = weatherHumidity,
             weatherCode = weatherCode,
@@ -59,6 +61,7 @@ data class Activity(
                 avgPaceSecondsPerKm = entity.avgPaceSecondsPerKm,
                 stepCount = entity.stepCount,
                 isSynced = entity.isSynced,
+                isPublic = entity.isPublic,
                 weatherTemperature = entity.weatherTemperature,
                 weatherHumidity = entity.weatherHumidity,
                 weatherCode = entity.weatherCode,

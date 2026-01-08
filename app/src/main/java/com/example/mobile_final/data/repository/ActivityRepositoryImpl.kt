@@ -111,4 +111,20 @@ class ActivityRepositoryImpl @Inject constructor(
     override suspend fun getTotalCaloriesForPeriod(startTime: Long, endTime: Long): Int {
         return activityDao.getTotalCaloriesForPeriod(startTime, endTime) ?: 0
     }
+
+    // Social feed
+    override fun getAllActivitiesWithLocationPoints(): Flow<List<Pair<Activity, List<LocationPoint>>>> {
+        return activityDao.getAllActivities().map { activityEntities ->
+            activityEntities.map { entity ->
+                val activity = Activity.fromEntity(entity)
+                val locationPoints = locationPointDao.getLocationPointsForActivity(entity.id)
+                    .map { LocationPoint.fromEntity(it) }
+                Pair(activity, locationPoints)
+            }
+        }
+    }
+
+    override suspend fun updateActivityPublicStatus(activityId: Long, isPublic: Boolean) {
+        activityDao.updateActivityPublicStatus(activityId, isPublic)
+    }
 }

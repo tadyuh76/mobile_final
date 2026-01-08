@@ -16,6 +16,7 @@ data class ActivityEntity(
     val avgPaceSecondsPerKm: Int = 0,
     val stepCount: Int = 0,
     val isSynced: Boolean = false,
+    val isPublic: Boolean = false,
     // Weather data captured at activity start
     val weatherTemperature: Double? = null,
     val weatherHumidity: Int? = null,
