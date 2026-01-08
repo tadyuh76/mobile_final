@@ -24,9 +24,12 @@ class RunTrackerApp : Application() {
             val channel = NotificationChannel(
                 TRACKING_NOTIFICATION_CHANNEL_ID,
                 TRACKING_NOTIFICATION_CHANNEL_NAME,
-                NotificationManager.IMPORTANCE_LOW
+                NotificationManager.IMPORTANCE_DEFAULT  // Changed from LOW to ensure visibility
             ).apply {
                 description = "Shows notification while tracking your activity"
+                setShowBadge(false)  // Don't show badge since this is an ongoing service
+                enableLights(false)  // No notification light
+                enableVibration(false)  // No vibration on updates
             }
 
             val notificationManager = getSystemService(NotificationManager::class.java)
