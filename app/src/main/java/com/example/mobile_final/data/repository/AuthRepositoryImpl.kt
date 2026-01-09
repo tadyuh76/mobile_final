@@ -5,6 +5,7 @@ import android.util.Log
 import com.example.mobile_final.R
 import com.example.mobile_final.data.local.dao.ActivityDao
 import com.example.mobile_final.data.local.dao.LocationPointDao
+import com.example.mobile_final.data.local.dao.UserSettingsDao
 import com.example.mobile_final.domain.repository.AuthRepository
 import com.example.mobile_final.domain.repository.UserDataRepository
 import com.google.android.gms.auth.api.signin.GoogleSignIn
@@ -26,7 +27,8 @@ class AuthRepositoryImpl @Inject constructor(
     @ApplicationContext private val context: Context,
     private val userDataRepository: UserDataRepository,
     private val activityDao: ActivityDao,
-    private val locationPointDao: LocationPointDao
+    private val locationPointDao: LocationPointDao,
+    private val userSettingsDao: UserSettingsDao
 ) : AuthRepository {
 
     companion object {
@@ -70,6 +72,7 @@ class AuthRepositoryImpl @Inject constructor(
             Log.d(TAG, "Clearing local database before restore")
             activityDao.deleteAllActivities()
             locationPointDao.deleteAllLocationPoints()
+            userSettingsDao.deleteAllSettings()
 
             userDataRepository.restoreUserActivities(userId)
                 .onSuccess { cloudActivities ->
@@ -103,6 +106,13 @@ class AuthRepositoryImpl @Inject constructor(
     }
 
     override suspend fun signOut() {
+        // Clear ALL local data for privacy before signing out
+        // This ensures no data leaks between different user accounts
+        Log.d(TAG, "Clearing all local data on sign-out")
+        activityDao.deleteAllActivities()
+        locationPointDao.deleteAllLocationPoints()
+        userSettingsDao.deleteAllSettings()
+
         // Sign out from Firebase
         firebaseAuth.signOut()
 
