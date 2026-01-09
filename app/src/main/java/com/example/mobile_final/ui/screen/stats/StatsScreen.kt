@@ -388,14 +388,15 @@ private fun MonthlyTrendChart(
                     "W${weeklyStats.getOrNull(x.toInt())?.weekNumber ?: ""}"
                 }
 
-                val line = LineCartesianLayer.rememberLine(
-                    fill = LineCartesianLayer.LineFill.single(fill(primaryColor)),
-                    thickness = 3.dp
-                )
                 CartesianChartHost(
                     chart = rememberCartesianChart(
                         rememberLineCartesianLayer(
-                            lineProvider = LineCartesianLayer.LineProvider.series(line)
+                            lineProvider = LineCartesianLayer.LineProvider.series(
+                                LineCartesianLayer.rememberLine(
+                                    fill = LineCartesianLayer.LineFill.single(fill(primaryColor)),
+                                    thickness = 3.dp
+                                )
+                            )
                         ),
                         startAxis = VerticalAxis.rememberStart(
                             itemPlacer = VerticalAxis.ItemPlacer.count({ 5 }),

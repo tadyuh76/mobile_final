@@ -7,7 +7,6 @@ import com.example.mobile_final.domain.model.LocationPoint
 import com.example.mobile_final.domain.repository.ActiveSessionRepository
 import com.example.mobile_final.domain.repository.ActivityRepository
 import com.example.mobile_final.domain.repository.AuthRepository
-import com.example.mobile_final.domain.repository.SocialActivity
 import com.example.mobile_final.domain.repository.SocialRepository
 import com.example.mobile_final.service.TrackingState
 import dagger.hilt.android.lifecycle.HiltViewModel
