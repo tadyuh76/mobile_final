@@ -22,8 +22,6 @@ class SyncRepositoryImpl @Inject constructor(
     companion object {
         private const val USERS_COLLECTION = "users"
         private const val ACTIVITIES_COLLECTION = "activities"
-        private const val LOCATION_POINTS_COLLECTION = "locationPoints"
-        private const val BACKUP_INFO_DOC = "backupInfo"
     }
 
     override suspend fun backupActivities(userId: String): Result<Int> {
@@ -94,22 +92,18 @@ class SyncRepositoryImpl @Inject constructor(
                     // Insert activity
                     val newActivityId = activityDao.insert(activity.toEntity())
 
-                    // Restore location points
-                    val locationPointsSnapshot = activityDoc.reference
-                        .collection(LOCATION_POINTS_COLLECTION)
-                        .get()
-                        .await()
-
-                    for (pointDoc in locationPointsSnapshot.documents) {
-                        val pointData = pointDoc.data ?: continue
+                    // Restore location points from embedded array (same format as UserDataRepository)
+                    val locationPointsList = activityData["locationPoints"] as? List<*>
+                    locationPointsList?.forEach { point ->
+                        val pointMap = point as? Map<*, *> ?: return@forEach
                         val locationPoint = LocationPoint(
                             id = 0,
                             activityId = newActivityId,
-                            latitude = (pointData["latitude"] as? Number)?.toDouble() ?: 0.0,
-                            longitude = (pointData["longitude"] as? Number)?.toDouble() ?: 0.0,
-                            altitude = (pointData["altitude"] as? Number)?.toDouble(),
-                            timestamp = (pointData["timestamp"] as? Number)?.toLong() ?: 0L,
-                            speedMps = (pointData["speedMps"] as? Number)?.toFloat()
+                            latitude = (pointMap["latitude"] as? Number)?.toDouble() ?: 0.0,
+                            longitude = (pointMap["longitude"] as? Number)?.toDouble() ?: 0.0,
+                            altitude = (pointMap["altitude"] as? Number)?.toDouble(),
+                            timestamp = (pointMap["timestamp"] as? Number)?.toLong() ?: 0L,
+                            speedMps = (pointMap["speedMps"] as? Number)?.toFloat()
                         )
                         locationPointDao.insert(locationPoint.toEntity())
                     }
@@ -136,7 +130,7 @@ class SyncRepositoryImpl @Inject constructor(
                 .collection(ACTIVITIES_COLLECTION)
                 .document(activity.startTime.toString())
 
-            // Create activity document (including weather data)
+            // Create activity document with embedded location points (same format as UserDataRepository)
             val activityData = hashMapOf(
                 "type" to activity.type.name.lowercase(),
                 "startTime" to activity.startTime,
@@ -146,33 +140,26 @@ class SyncRepositoryImpl @Inject constructor(
                 "caloriesBurned" to activity.caloriesBurned,
                 "avgPaceSecondsPerKm" to activity.avgPaceSecondsPerKm,
                 "stepCount" to activity.stepCount,
+                "isPublic" to activity.isPublic,
                 // Weather data
                 "weatherTemperature" to activity.weatherTemperature,
                 "weatherHumidity" to activity.weatherHumidity,
                 "weatherCode" to activity.weatherCode,
                 "weatherWindSpeed" to activity.weatherWindSpeed,
-                "weatherDescription" to activity.weatherDescription
+                "weatherDescription" to activity.weatherDescription,
+                // Location points as embedded array
+                "locationPoints" to locationPoints.map { point ->
+                    hashMapOf(
+                        "latitude" to point.latitude,
+                        "longitude" to point.longitude,
+                        "altitude" to point.altitude,
+                        "timestamp" to point.timestamp,
+                        "speedMps" to point.speedMps
+                    )
+                }
             )
 
             activityRef.set(activityData).await()
-
-            // Backup location points
-            val batch = firestore.batch()
-            locationPoints.forEachIndexed { index, point ->
-                val pointRef = activityRef
-                    .collection(LOCATION_POINTS_COLLECTION)
-                    .document(index.toString())
-
-                val pointData = hashMapOf(
-                    "latitude" to point.latitude,
-                    "longitude" to point.longitude,
-                    "altitude" to point.altitude,
-                    "timestamp" to point.timestamp,
-                    "speedMps" to point.speedMps
-                )
-                batch.set(pointRef, pointData)
-            }
-            batch.commit().await()
 
             Result.success(Unit)
         } catch (e: Exception) {

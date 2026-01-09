@@ -27,7 +27,8 @@ data class HomeUiState(
     val weeklyDistanceKm: Double = 0.0,
     val weeklyActivityCount: Int = 0,
     val weeklyCalories: Int = 0,
-    val isLoading: Boolean = false
+    val isLoading: Boolean = false,
+    val isRefreshing: Boolean = false
 )
 
 @HiltViewModel
@@ -154,8 +155,16 @@ class HomeViewModel @Inject constructor(
                 weeklyDistanceKm = weeklyDistance / 1000.0,
                 weeklyActivityCount = weeklyCount,
                 weeklyCalories = weeklyCalories,
-                isLoading = false
+                isLoading = false,
+                isRefreshing = false
             )
+        }
+    }
+
+    fun refresh() {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isRefreshing = true)
+            loadStats()
         }
     }
 }

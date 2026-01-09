@@ -61,7 +61,7 @@ fun SocialScreen(
         }
     ) { paddingValues ->
         PullToRefreshBox(
-            isRefreshing = uiState.isLoading && uiState.activities.isNotEmpty(),
+            isRefreshing = uiState.isRefreshing,
             onRefresh = { viewModel.refresh() },
             modifier = Modifier
                 .fillMaxSize()

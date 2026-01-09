@@ -71,6 +71,7 @@ class TrackingService : LifecycleService(), SensorEventListener {
 
     private var currentActivityId: Long = -1L
     private var activityIdDeferred: CompletableDeferred<Long>? = null
+    private var stopCompletionDeferred: CompletableDeferred<Unit>? = null
     private var lastLocation: Location? = null
     private var userWeightKg: Float = 70f
 
@@ -224,7 +225,10 @@ class TrackingService : LifecycleService(), SensorEventListener {
     }
 
     private fun stopTracking() {
-        if (!_isTracking.value) return
+        if (!_isTracking.value) {
+            stopCompletionDeferred?.complete(Unit)
+            return
+        }
 
         _isTracking.value = false
         _isPaused.value = false
@@ -235,8 +239,9 @@ class TrackingService : LifecycleService(), SensorEventListener {
         // Stop step counter
         sensorManager?.unregisterListener(this)
 
-        // Finalize activity in database
-        lifecycleScope.launch {
+        // Finalize activity in database - use runBlocking to ensure completion before service stops
+        // This ensures location points are synced to cloud before the service is destroyed
+        runBlocking {
             if (currentActivityId != -1L) {
                 val state = _trackingState.value
                 val endTime = System.currentTimeMillis()
@@ -264,6 +269,9 @@ class TrackingService : LifecycleService(), SensorEventListener {
                 activityRepository.updateActivity(activity)
             }
         }
+
+        // Signal that stop is complete - observers can now read updated data
+        stopCompletionDeferred?.complete(Unit)
 
         _trackingState.value = TrackingState()
         publishTrackingState()
@@ -488,6 +496,24 @@ class TrackingService : LifecycleService(), SensorEventListener {
 
     suspend fun getActivityIdAsync(): Long {
         return activityIdDeferred?.await() ?: -1L
+    }
+
+    /**
+     * Prepares for stop and waits for the activity to be fully saved.
+     * Returns the activity ID after all database operations are complete.
+     */
+    suspend fun stopAndWaitForCompletion(): Long {
+        val activityId = activityIdDeferred?.await() ?: -1L
+        stopCompletionDeferred = CompletableDeferred()
+        return activityId
+    }
+
+    /**
+     * Waits for the stop operation to complete.
+     * Call this after sending ACTION_STOP intent to ensure data is saved.
+     */
+    suspend fun awaitStopCompletion() {
+        stopCompletionDeferred?.await()
     }
 
     companion object {

@@ -172,8 +172,13 @@ fun TrackingScreen(
                 // Enable location component and configure compass
                 MapEffect(Unit) { mapView ->
                     // Disable default compass to use custom buttons
-                    mapView.compass.updateSettings {
-                        enabled = false
+                    // Wrapped in try-catch as compass plugin may not be initialized yet
+                    try {
+                        mapView.compass.updateSettings {
+                            enabled = false
+                        }
+                    } catch (_: Exception) {
+                        // Compass plugin not available, ignore
                     }
 
                     mapView.location.updateSettings {

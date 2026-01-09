@@ -119,12 +119,16 @@ class TrackingViewModel @Inject constructor(
 
     fun stopTrackingAsync(onActivitySaved: (Long) -> Unit) {
         viewModelScope.launch {
-            // Wait for the activity ID to be available (handles race condition)
-            val activityId = trackingService?.getActivityIdAsync() ?: -1L
+            // Prepare for stop and get activity ID
+            val activityId = trackingService?.stopAndWaitForCompletion() ?: -1L
 
+            // Send stop intent to service
             Intent(context, TrackingService::class.java).apply {
                 action = TrackingService.ACTION_STOP
             }.also { context.startService(it) }
+
+            // Wait for the service to fully save the activity before navigating
+            trackingService?.awaitStopCompletion()
 
             onActivitySaved(activityId)
         }
