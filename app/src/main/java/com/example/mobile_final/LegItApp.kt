@@ -7,7 +7,7 @@ import android.os.Build
 import dagger.hilt.android.HiltAndroidApp
 
 @HiltAndroidApp
-class RunTrackerApp : Application() {
+class LegItApp : Application() {
 
     companion object {
         const val TRACKING_NOTIFICATION_CHANNEL_ID = "tracking_channel"

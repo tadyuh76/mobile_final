@@ -19,7 +19,7 @@ import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.lifecycleScope
 import com.example.mobile_final.MainActivity
 import com.example.mobile_final.R
-import com.example.mobile_final.RunTrackerApp
+import com.example.mobile_final.LegItApp
 import com.example.mobile_final.data.local.entity.ActivityType
 import com.example.mobile_final.domain.model.Activity
 import com.example.mobile_final.domain.model.LocationPoint
@@ -440,7 +440,7 @@ class TrackingService : LifecycleService(), SensorEventListener {
         val duration = formatDuration(state.durationMillis)
         val distance = String.format("%.2f km", state.distanceMeters / 1000)
 
-        return NotificationCompat.Builder(this, RunTrackerApp.TRACKING_NOTIFICATION_CHANNEL_ID)
+        return NotificationCompat.Builder(this, LegItApp.TRACKING_NOTIFICATION_CHANNEL_ID)
             .setContentTitle("Tracking ${state.activityType.displayName}")
             .setContentText("$duration • $distance")
             .setSmallIcon(R.drawable.ic_launcher_foreground)
