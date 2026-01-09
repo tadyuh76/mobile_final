@@ -24,6 +24,7 @@ class SocialRepositoryImpl @Inject constructor(
     override suspend fun publishActivity(
         userId: String,
         userDisplayName: String?,
+        userPhotoUrl: String?,
         activity: Activity,
         locationPoints: List<LocationPoint>
     ): Result<Unit> {
@@ -33,6 +34,7 @@ class SocialRepositoryImpl @Inject constructor(
             val activityData = hashMapOf(
                 "userId" to userId,
                 "userDisplayName" to userDisplayName,
+                "userPhotoUrl" to userPhotoUrl,
                 "type" to activity.type.name.lowercase(),
                 "startTime" to activity.startTime,
                 "endTime" to activity.endTime,
@@ -89,6 +91,7 @@ class SocialRepositoryImpl @Inject constructor(
                         try {
                             val userId = doc.getString("userId") ?: return@mapNotNull null
                             val userDisplayName = doc.getString("userDisplayName")
+                            val userPhotoUrl = doc.getString("userPhotoUrl")
 
                             val activity = Activity(
                                 id = 0, // Not used for social feed
@@ -126,6 +129,7 @@ class SocialRepositoryImpl @Inject constructor(
                             SocialActivity(
                                 userId = userId,
                                 userDisplayName = userDisplayName,
+                                userPhotoUrl = userPhotoUrl,
                                 activity = activity,
                                 locationPoints = locationPoints
                             )

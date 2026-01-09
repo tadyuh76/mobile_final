@@ -11,6 +11,7 @@ interface SocialRepository {
     suspend fun publishActivity(
         userId: String,
         userDisplayName: String?,
+        userPhotoUrl: String?,
         activity: Activity,
         locationPoints: List<LocationPoint>
     ): Result<Unit>
@@ -29,6 +30,7 @@ interface SocialRepository {
 data class SocialActivity(
     val userId: String,
     val userDisplayName: String?,
+    val userPhotoUrl: String?,
     val activity: Activity,
     val locationPoints: List<LocationPoint>
 )

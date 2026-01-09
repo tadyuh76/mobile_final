@@ -1,7 +1,9 @@
 package com.example.mobile_final.ui.screen.social
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -42,7 +44,19 @@ fun SocialScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Social Feed") }
+                title = {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.People,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        Text("Social Feed")
+                    }
+                }
             )
         }
     ) { paddingValues ->
@@ -147,6 +161,7 @@ fun SocialScreen(
                                 activity = socialActivity.activity,
                                 locationPoints = socialActivity.locationPoints,
                                 userDisplayName = if (isOwnActivity) "You" else socialActivity.userDisplayName,
+                                userPhotoUrl = socialActivity.userPhotoUrl,
                                 isOwnActivity = isOwnActivity,
                                 modifier = Modifier
                                     .fillMaxWidth()

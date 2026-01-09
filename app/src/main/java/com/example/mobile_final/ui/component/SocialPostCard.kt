@@ -33,12 +33,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.mobile_final.data.local.entity.ActivityType
 import com.example.mobile_final.domain.model.Activity
 import com.example.mobile_final.domain.model.LocationPoint
 import com.example.mobile_final.util.FormatUtils
+import coil.compose.AsyncImage
 import com.mapbox.geojson.Point
 import com.mapbox.maps.CameraOptions
 import com.mapbox.maps.EdgeInsets
@@ -53,7 +55,9 @@ fun SocialPostCard(
     activity: Activity,
     locationPoints: List<LocationPoint>,
     userDisplayName: String? = null,
+    userPhotoUrl: String? = null,
     isOwnActivity: Boolean = true,
+    showUserAvatar: Boolean = true,
     onShareClick: (() -> Unit)? = null,
     onClick: () -> Unit = {},
     modifier: Modifier = Modifier
@@ -73,7 +77,9 @@ fun SocialPostCard(
             PostHeader(
                 activity = activity,
                 userDisplayName = userDisplayName,
+                userPhotoUrl = userPhotoUrl,
                 isOwnActivity = isOwnActivity,
+                showUserAvatar = showUserAvatar,
                 onShareClick = onShareClick
             )
 
@@ -101,7 +107,9 @@ fun SocialPostCard(
 private fun PostHeader(
     activity: Activity,
     userDisplayName: String?,
+    userPhotoUrl: String?,
     isOwnActivity: Boolean,
+    showUserAvatar: Boolean,
     onShareClick: (() -> Unit)?
 ) {
     val timeOfDayColor = getTimeOfDayColor(activity.startTime)
@@ -112,19 +120,42 @@ private fun PostHeader(
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Activity Avatar - icon based on activity type, color based on time of day
+        // Avatar/Icon based on showUserAvatar flag
         Surface(
             modifier = Modifier.size(48.dp),
             shape = CircleShape,
             color = timeOfDayColor.copy(alpha = 0.15f)
         ) {
-            Box(contentAlignment = Alignment.Center) {
-                Icon(
-                    imageVector = getActivityIcon(activity.type),
-                    contentDescription = null,
-                    modifier = Modifier.size(28.dp),
-                    tint = timeOfDayColor
+            if (showUserAvatar && userPhotoUrl != null) {
+                // Show user photo
+                AsyncImage(
+                    model = userPhotoUrl,
+                    contentDescription = "User avatar",
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clip(CircleShape),
+                    contentScale = ContentScale.Crop
                 )
+            } else if (showUserAvatar) {
+                // Fallback to initials if no photo URL
+                Box(contentAlignment = Alignment.Center) {
+                    Text(
+                        text = (userDisplayName?.firstOrNull() ?: 'U').uppercase(),
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = timeOfDayColor
+                    )
+                }
+            } else {
+                // Show activity type icon (dynamic icon for home page)
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = getActivityIcon(activity.type),
+                        contentDescription = null,
+                        modifier = Modifier.size(28.dp),
+                        tint = timeOfDayColor
+                    )
+                }
             }
         }
 

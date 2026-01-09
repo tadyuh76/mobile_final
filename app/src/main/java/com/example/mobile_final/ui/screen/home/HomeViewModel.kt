@@ -6,12 +6,16 @@ import com.example.mobile_final.domain.model.Activity
 import com.example.mobile_final.domain.model.LocationPoint
 import com.example.mobile_final.domain.repository.ActiveSessionRepository
 import com.example.mobile_final.domain.repository.ActivityRepository
+import com.example.mobile_final.domain.repository.AuthRepository
+import com.example.mobile_final.domain.repository.SocialActivity
+import com.example.mobile_final.domain.repository.SocialRepository
 import com.example.mobile_final.service.TrackingState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.util.Calendar
@@ -30,7 +34,9 @@ data class HomeUiState(
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val activityRepository: ActivityRepository,
-    private val activeSessionRepository: ActiveSessionRepository
+    private val activeSessionRepository: ActiveSessionRepository,
+    private val socialRepository: SocialRepository,
+    private val authRepository: AuthRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
@@ -39,9 +45,35 @@ class HomeViewModel @Inject constructor(
     // Expose active tracking session state for the UI
     val activeTrackingState: StateFlow<TrackingState> = activeSessionRepository.trackingState
 
-    // Expose activities with location points for social feed display
+    // Get current user ID
+    private val currentUserId: String? = authRepository.getCurrentUser()?.uid
+
+    // Track which activities are published (from Firestore)
+    private val publishedActivityStartTimes: StateFlow<Set<Long>> =
+        socialRepository.getPublicActivities()
+            .combine(kotlinx.coroutines.flow.flowOf(currentUserId)) { activities, userId ->
+                if (userId == null) emptySet()
+                else activities
+                    .filter { it.userId == userId }
+                    .map { it.activity.startTime }
+                    .toSet()
+            }
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5000),
+                initialValue = emptySet()
+            )
+
+    // Expose activities with location points, with isPublic derived from Firestore
     val activitiesWithLocations: StateFlow<List<Pair<Activity, List<LocationPoint>>>> =
         activityRepository.getAllActivitiesWithLocationPoints()
+            .combine(publishedActivityStartTimes) { activities, publishedTimes ->
+                activities.map { (activity, locationPoints) ->
+                    // Override isPublic based on whether it's in Firestore
+                    val isPublished = publishedTimes.contains(activity.startTime)
+                    Pair(activity.copy(isPublic = isPublished), locationPoints)
+                }
+            }
             .stateIn(
                 scope = viewModelScope,
                 started = SharingStarted.WhileSubscribed(5000),
@@ -54,7 +86,29 @@ class HomeViewModel @Inject constructor(
 
     fun toggleActivityPublic(activityId: Long, isPublic: Boolean) {
         viewModelScope.launch {
-            activityRepository.updateActivityPublicStatus(activityId, isPublic)
+            // Get the activity and location points
+            val activityWithLocations = activitiesWithLocations.value.find { it.first.id == activityId }
+            val activity = activityWithLocations?.first ?: return@launch
+            val locationPoints = activityWithLocations.second
+            val currentUser = authRepository.getCurrentUser() ?: return@launch
+
+            // Only update Firestore - the UI will automatically update via the Flow
+            if (isPublic) {
+                // Publish to social feed
+                socialRepository.publishActivity(
+                    userId = currentUser.uid,
+                    userDisplayName = currentUser.displayName,
+                    userPhotoUrl = currentUser.photoUrl?.toString(),
+                    activity = activity.copy(isPublic = true),
+                    locationPoints = locationPoints
+                )
+            } else {
+                // Unpublish from social feed
+                socialRepository.unpublishActivity(
+                    userId = currentUser.uid,
+                    activityStartTime = activity.startTime
+                )
+            }
         }
     }
 

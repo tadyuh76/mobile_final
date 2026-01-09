@@ -97,6 +97,7 @@ class DetailViewModel @Inject constructor(
                         val result = socialRepository.publishActivity(
                             userId = currentUser.uid,
                             userDisplayName = currentUser.displayName,
+                            userPhotoUrl = currentUser.photoUrl?.toString(),
                             activity = currentActivity.copy(isPublic = true),
                             locationPoints = currentLocationPoints
                         )

@@ -239,6 +239,7 @@ fun HomeScreen(
                         locationPoints = locationPoints,
                         userDisplayName = null,
                         isOwnActivity = true,
+                        showUserAvatar = false,
                         onShareClick = {
                             activityToShare = Pair(activity.id, activity.isPublic)
                         },

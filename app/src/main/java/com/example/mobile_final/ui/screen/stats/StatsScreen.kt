@@ -14,8 +14,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.DirectionsRun
+import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Speed
@@ -26,7 +26,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -47,7 +46,10 @@ import com.patrykandpatrick.vico.compose.cartesian.CartesianChartHost
 import com.patrykandpatrick.vico.compose.cartesian.axis.rememberBottom
 import com.patrykandpatrick.vico.compose.cartesian.axis.rememberStart
 import com.patrykandpatrick.vico.compose.cartesian.layer.rememberColumnCartesianLayer
+import com.patrykandpatrick.vico.compose.cartesian.layer.rememberLine
 import com.patrykandpatrick.vico.compose.cartesian.layer.rememberLineCartesianLayer
+import com.patrykandpatrick.vico.compose.common.fill
+import com.patrykandpatrick.vico.core.cartesian.layer.LineCartesianLayer
 import com.patrykandpatrick.vico.compose.cartesian.rememberCartesianChart
 import com.patrykandpatrick.vico.compose.common.component.rememberLineComponent
 import com.patrykandpatrick.vico.compose.common.component.rememberTextComponent
@@ -64,7 +66,7 @@ import com.patrykandpatrick.vico.core.common.shape.CorneredShape
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StatsScreen(
-    onNavigateBack: () -> Unit,
+    onNavigateBack: () -> Unit = {},
     viewModel: StatsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -72,13 +74,17 @@ fun StatsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Statistics") },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
+                title = {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
                         Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
+                            imageVector = Icons.Default.BarChart,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary
                         )
+                        Text("Statistics")
                     }
                 }
             )
@@ -376,14 +382,21 @@ private fun MonthlyTrendChart(
                     }
                 }
 
+                val primaryColor = MaterialTheme.colorScheme.primary
                 val labelColor = MaterialTheme.colorScheme.onSurface
                 val bottomAxisValueFormatter = CartesianValueFormatter { _, x, _ ->
                     "W${weeklyStats.getOrNull(x.toInt())?.weekNumber ?: ""}"
                 }
 
+                val line = LineCartesianLayer.rememberLine(
+                    fill = LineCartesianLayer.LineFill.single(fill(primaryColor)),
+                    thickness = 3.dp
+                )
                 CartesianChartHost(
                     chart = rememberCartesianChart(
-                        rememberLineCartesianLayer(),
+                        rememberLineCartesianLayer(
+                            lineProvider = LineCartesianLayer.LineProvider.series(line)
+                        ),
                         startAxis = VerticalAxis.rememberStart(
                             itemPlacer = VerticalAxis.ItemPlacer.count({ 5 }),
                             label = rememberTextComponent(color = labelColor, textSize = 12.sp),

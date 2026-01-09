@@ -85,6 +85,9 @@ dependencies {
     // Charts
     implementation(libs.vico.compose.m3)
 
+    // Image Loading
+    implementation(libs.coil.compose)
+
     // Lifecycle
     implementation(libs.lifecycle.service)
     implementation(libs.lifecycle.viewmodel.compose)
