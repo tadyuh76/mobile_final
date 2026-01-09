@@ -11,12 +11,12 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.DirectionsBike
 import androidx.compose.material.icons.automirrored.filled.DirectionsRun
+import androidx.compose.material.icons.automirrored.filled.DirectionsWalk
 import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.CloudDone
 import androidx.compose.material.icons.filled.CloudOff
-import androidx.compose.material.icons.filled.DirectionsBike
-import androidx.compose.material.icons.filled.DirectionsWalk
 import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Straighten
@@ -151,15 +151,11 @@ private fun ActivityTypeIcon(
 ) {
     val icon = when (activityType) {
         ActivityType.RUNNING -> Icons.AutoMirrored.Filled.DirectionsRun
-        ActivityType.WALKING -> Icons.Default.DirectionsWalk
-        ActivityType.CYCLING -> Icons.Default.DirectionsBike
+        ActivityType.WALKING -> Icons.AutoMirrored.Filled.DirectionsWalk
+        ActivityType.CYCLING -> Icons.AutoMirrored.Filled.DirectionsBike
     }
 
-    val color = when (activityType) {
-        ActivityType.RUNNING -> MaterialTheme.colorScheme.primary
-        ActivityType.WALKING -> MaterialTheme.colorScheme.secondary
-        ActivityType.CYCLING -> MaterialTheme.colorScheme.tertiary
-    }
+    val color = getActivityTypeColor(activityType)
 
     Card(
         modifier = modifier,
@@ -176,6 +172,14 @@ private fun ActivityTypeIcon(
                 .size(28.dp),
             tint = color
         )
+    }
+}
+
+private fun getActivityTypeColor(activityType: ActivityType): Color {
+    return when (activityType) {
+        ActivityType.RUNNING -> Color(0xFF4CAF50)    // Green for running
+        ActivityType.WALKING -> Color(0xFF2196F3)    // Blue for walking
+        ActivityType.CYCLING -> Color(0xFFFF9800)    // Orange for cycling
     }
 }
 

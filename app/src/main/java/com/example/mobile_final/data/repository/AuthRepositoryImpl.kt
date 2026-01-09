@@ -13,12 +13,9 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.GoogleAuthProvider
 import dagger.hilt.android.qualifiers.ApplicationContext
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -53,6 +50,7 @@ class AuthRepositoryImpl @Inject constructor(
             val result = firebaseAuth.signInWithCredential(credential).await()
             result.user?.let { user ->
                 // Restore user data from cloud after successful sign-in
+                // This is synchronous to ensure data is ready before UI loads
                 restoreUserDataFromCloud(user.uid)
                 Result.success(user)
             } ?: Result.failure(Exception("Sign in failed"))
@@ -63,46 +61,44 @@ class AuthRepositoryImpl @Inject constructor(
 
     /**
      * Restores user activity data from Firestore to local database.
-     * Runs asynchronously to avoid blocking the sign-in flow.
-     * Uses startTime as unique key to avoid duplicates.
+     * This is a SYNCHRONOUS operation - sign-in waits for data to be ready.
+     * Clears local database first to prevent mixing different users' data.
      */
-    private fun restoreUserDataFromCloud(userId: String) {
-        CoroutineScope(Dispatchers.IO).launch {
-            try {
-                // Clear any existing local data first to prevent mixing users' data
-                Log.d(TAG, "Clearing local database before restore")
-                activityDao.deleteAllActivities()
-                locationPointDao.deleteAllLocationPoints()
+    private suspend fun restoreUserDataFromCloud(userId: String) {
+        try {
+            // Clear any existing local data first to prevent mixing users' data
+            Log.d(TAG, "Clearing local database before restore")
+            activityDao.deleteAllActivities()
+            locationPointDao.deleteAllLocationPoints()
 
-                userDataRepository.restoreUserActivities(userId)
-                    .onSuccess { cloudActivities ->
-                        Log.d(TAG, "Restoring ${cloudActivities.size} activities from cloud")
+            userDataRepository.restoreUserActivities(userId)
+                .onSuccess { cloudActivities ->
+                    Log.d(TAG, "Restoring ${cloudActivities.size} activities from cloud")
 
-                        cloudActivities.forEach { (activity, locationPoints) ->
-                            try {
-                                // Insert activity
-                                val activityId = activityDao.insertActivity(activity.toEntity())
+                    cloudActivities.forEach { (activity, locationPoints) ->
+                        try {
+                            // Insert activity
+                            val activityId = activityDao.insertActivity(activity.toEntity())
 
-                                // Insert location points with correct activity ID
-                                val pointsWithActivityId = locationPoints.map { point ->
-                                    point.copy(activityId = activityId).toEntity()
-                                }
-                                locationPointDao.insertLocationPoints(pointsWithActivityId)
-
-                                Log.d(TAG, "Restored activity from ${activity.startTime}")
-                            } catch (e: Exception) {
-                                Log.e(TAG, "Failed to restore activity: ${e.message}")
+                            // Insert location points with correct activity ID
+                            val pointsWithActivityId = locationPoints.map { point ->
+                                point.copy(activityId = activityId).toEntity()
                             }
-                        }
+                            locationPointDao.insertLocationPoints(pointsWithActivityId)
 
-                        Log.d(TAG, "Data restore completed - ${cloudActivities.size} activities")
+                            Log.d(TAG, "Restored activity from ${activity.startTime}")
+                        } catch (e: Exception) {
+                            Log.e(TAG, "Failed to restore activity: ${e.message}")
+                        }
                     }
-                    .onFailure { e ->
-                        Log.e(TAG, "Failed to restore user data: ${e.message}")
-                    }
-            } catch (e: Exception) {
-                Log.e(TAG, "Error during data restoration: ${e.message}")
-            }
+
+                    Log.d(TAG, "Data restore completed - ${cloudActivities.size} activities")
+                }
+                .onFailure { e ->
+                    Log.e(TAG, "Failed to restore user data: ${e.message}")
+                }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error during data restoration: ${e.message}")
         }
     }
 

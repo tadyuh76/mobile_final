@@ -141,11 +141,13 @@ fun SocialScreen(
                             items = uiState.activities,
                             key = { "${it.userId}_${it.activity.startTime}" }
                         ) { socialActivity ->
+                            val isOwnActivity = uiState.currentUserId != null &&
+                                socialActivity.userId == uiState.currentUserId
                             SocialPostCard(
                                 activity = socialActivity.activity,
                                 locationPoints = socialActivity.locationPoints,
-                                userDisplayName = socialActivity.userDisplayName,
-                                isOwnActivity = false,
+                                userDisplayName = if (isOwnActivity) "You" else socialActivity.userDisplayName,
+                                isOwnActivity = isOwnActivity,
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(horizontal = 12.dp, vertical = 6.dp)

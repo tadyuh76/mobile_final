@@ -16,9 +16,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.DirectionsBike
 import androidx.compose.material.icons.automirrored.filled.DirectionsRun
-import androidx.compose.material.icons.filled.DirectionsBike
-import androidx.compose.material.icons.filled.DirectionsWalk
+import androidx.compose.material.icons.automirrored.filled.DirectionsWalk
 import androidx.compose.material.icons.filled.IosShare
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -85,6 +85,7 @@ fun SocialPostCard(
             // Route Map
             RouteMapPreview(
                 locationPoints = locationPoints,
+                activityType = activity.type,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(200.dp)
@@ -103,24 +104,27 @@ private fun PostHeader(
     isOwnActivity: Boolean,
     onShareClick: (() -> Unit)?
 ) {
+    val activityColor = getActivityTypeColor(activity.type)
+    val timeOfDayColor = getTimeOfDayColor(activity.startTime)
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Activity Avatar
+        // Activity Avatar with type-specific color
         Surface(
             modifier = Modifier.size(48.dp),
             shape = CircleShape,
-            color = MaterialTheme.colorScheme.primaryContainer
+            color = activityColor.copy(alpha = 0.15f)
         ) {
             Box(contentAlignment = Alignment.Center) {
                 Icon(
                     imageVector = getActivityIcon(activity.type),
                     contentDescription = null,
                     modifier = Modifier.size(28.dp),
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer
+                    tint = activityColor
                 )
             }
         }
@@ -129,11 +133,23 @@ private fun PostHeader(
 
         // Title and User
         Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = "${FormatUtils.getTimeOfDay(activity.startTime)} ${activity.type.displayName}",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(
+                    text = FormatUtils.getTimeOfDay(activity.startTime),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = timeOfDayColor
+                )
+                Text(
+                    text = activity.type.displayName,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = activityColor
+                )
+            }
             Text(
                 text = userDisplayName ?: "You",
                 style = MaterialTheme.typography.bodySmall,
@@ -156,12 +172,14 @@ private fun PostHeader(
 
 @Composable
 private fun FeaturedStatsBanner(activity: Activity) {
+    val activityColor = getActivityTypeColor(activity.type)
+
     Surface(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 12.dp),
         shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.primaryContainer
+        color = activityColor.copy(alpha = 0.15f)
     ) {
         Row(
             modifier = Modifier
@@ -171,31 +189,34 @@ private fun FeaturedStatsBanner(activity: Activity) {
         ) {
             FeaturedStat(
                 value = FormatUtils.formatDistance(activity.distanceMeters),
-                label = "Distance"
+                label = "Distance",
+                color = activityColor
             )
 
             Box(
                 modifier = Modifier
                     .height(60.dp)
                     .width(1.dp)
-                    .background(MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.2f))
+                    .background(activityColor.copy(alpha = 0.3f))
             )
 
             FeaturedStat(
                 value = FormatUtils.formatDuration(activity.durationSeconds),
-                label = "Duration"
+                label = "Duration",
+                color = activityColor
             )
 
             Box(
                 modifier = Modifier
                     .height(60.dp)
                     .width(1.dp)
-                    .background(MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.2f))
+                    .background(activityColor.copy(alpha = 0.3f))
             )
 
             FeaturedStat(
                 value = FormatUtils.formatPace(activity.avgPaceSecondsPerKm.toDouble()),
-                label = "Pace"
+                label = "Pace",
+                color = activityColor
             )
         }
     }
@@ -204,7 +225,8 @@ private fun FeaturedStatsBanner(activity: Activity) {
 @Composable
 private fun FeaturedStat(
     value: String,
-    label: String
+    label: String,
+    color: Color = MaterialTheme.colorScheme.onPrimaryContainer
 ) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally
@@ -213,12 +235,12 @@ private fun FeaturedStat(
             text = value,
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onPrimaryContainer
+            color = color
         )
         Text(
             text = label,
             style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+            color = color.copy(alpha = 0.7f)
         )
     }
 }
@@ -226,9 +248,11 @@ private fun FeaturedStat(
 @Composable
 private fun RouteMapPreview(
     locationPoints: List<LocationPoint>,
+    activityType: ActivityType,
     modifier: Modifier = Modifier
 ) {
     val mapViewportState = rememberMapViewportState()
+    val polylineColor = getActivityTypeColor(activityType)
 
     Card(
         modifier = modifier,
@@ -248,10 +272,10 @@ private fun RouteMapPreview(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Icon(
-                            imageVector = Icons.AutoMirrored.Filled.DirectionsRun,
+                            imageVector = getActivityIcon(activityType),
                             contentDescription = null,
                             modifier = Modifier.size(32.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                            tint = polylineColor.copy(alpha = 0.5f)
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
@@ -307,7 +331,7 @@ private fun RouteMapPreview(
                         PolylineAnnotation(
                             points = points
                         ) {
-                            lineColor = Color(0xFF4CAF50)
+                            lineColor = polylineColor
                             lineWidth = 5.0
                         }
                     }
@@ -320,7 +344,31 @@ private fun RouteMapPreview(
 private fun getActivityIcon(type: ActivityType): ImageVector {
     return when (type) {
         ActivityType.RUNNING -> Icons.AutoMirrored.Filled.DirectionsRun
-        ActivityType.WALKING -> Icons.Filled.DirectionsWalk
-        ActivityType.CYCLING -> Icons.Filled.DirectionsBike
+        ActivityType.WALKING -> Icons.AutoMirrored.Filled.DirectionsWalk
+        ActivityType.CYCLING -> Icons.AutoMirrored.Filled.DirectionsBike
+    }
+}
+
+@Composable
+private fun getActivityTypeColor(type: ActivityType): Color {
+    return when (type) {
+        ActivityType.RUNNING -> Color(0xFF4CAF50)    // Green for running
+        ActivityType.WALKING -> Color(0xFF2196F3)    // Blue for walking
+        ActivityType.CYCLING -> Color(0xFFFF9800)    // Orange for cycling
+    }
+}
+
+private fun getTimeOfDayColor(timestamp: Long): Color {
+    val calendar = java.util.Calendar.getInstance().apply {
+        timeInMillis = timestamp
+    }
+    val hour = calendar.get(java.util.Calendar.HOUR_OF_DAY)
+
+    return when {
+        hour < 6 -> Color(0xFF5E35B1)      // Night - Deep Purple
+        hour < 12 -> Color(0xFFFFB300)     // Morning - Amber
+        hour < 17 -> Color(0xFFFF6F00)     // Afternoon - Deep Orange
+        hour < 21 -> Color(0xFFE91E63)     // Evening - Pink
+        else -> Color(0xFF5E35B1)          // Night - Deep Purple
     }
 }
