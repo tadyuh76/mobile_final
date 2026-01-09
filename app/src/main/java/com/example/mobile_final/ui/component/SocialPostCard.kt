@@ -104,7 +104,6 @@ private fun PostHeader(
     isOwnActivity: Boolean,
     onShareClick: (() -> Unit)?
 ) {
-    val activityColor = getActivityTypeColor(activity.type)
     val timeOfDayColor = getTimeOfDayColor(activity.startTime)
 
     Row(
@@ -113,18 +112,18 @@ private fun PostHeader(
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Activity Avatar with type-specific color
+        // Activity Avatar - icon based on activity type, color based on time of day
         Surface(
             modifier = Modifier.size(48.dp),
             shape = CircleShape,
-            color = activityColor.copy(alpha = 0.15f)
+            color = timeOfDayColor.copy(alpha = 0.15f)
         ) {
             Box(contentAlignment = Alignment.Center) {
                 Icon(
                     imageVector = getActivityIcon(activity.type),
                     contentDescription = null,
                     modifier = Modifier.size(28.dp),
-                    tint = activityColor
+                    tint = timeOfDayColor
                 )
             }
         }
@@ -133,23 +132,11 @@ private fun PostHeader(
 
         // Title and User
         Column(modifier = Modifier.weight(1f)) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                Text(
-                    text = FormatUtils.getTimeOfDay(activity.startTime),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = timeOfDayColor
-                )
-                Text(
-                    text = activity.type.displayName,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = activityColor
-                )
-            }
+            Text(
+                text = "${FormatUtils.getTimeOfDay(activity.startTime)} ${activity.type.displayName}",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
             Text(
                 text = userDisplayName ?: "You",
                 style = MaterialTheme.typography.bodySmall,

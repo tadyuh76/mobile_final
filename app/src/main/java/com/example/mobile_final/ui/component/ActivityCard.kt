@@ -63,9 +63,10 @@ fun ActivityCard(
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Activity Type Icon
+            // Activity Type Icon - icon based on type, color based on time of day
             ActivityTypeIcon(
                 activityType = activity.type,
+                timeOfDayColor = timeOfDayColor,
                 modifier = Modifier.size(48.dp)
             )
 
@@ -147,6 +148,7 @@ fun ActivityCard(
 @Composable
 private fun ActivityTypeIcon(
     activityType: ActivityType,
+    timeOfDayColor: Color,
     modifier: Modifier = Modifier
 ) {
     val icon = when (activityType) {
@@ -155,13 +157,11 @@ private fun ActivityTypeIcon(
         ActivityType.CYCLING -> Icons.AutoMirrored.Filled.DirectionsBike
     }
 
-    val color = getActivityTypeColor(activityType)
-
     Card(
         modifier = modifier,
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
-            containerColor = color.copy(alpha = 0.15f)
+            containerColor = timeOfDayColor.copy(alpha = 0.15f)
         )
     ) {
         Icon(
@@ -170,16 +170,8 @@ private fun ActivityTypeIcon(
             modifier = Modifier
                 .padding(10.dp)
                 .size(28.dp),
-            tint = color
+            tint = timeOfDayColor
         )
-    }
-}
-
-private fun getActivityTypeColor(activityType: ActivityType): Color {
-    return when (activityType) {
-        ActivityType.RUNNING -> Color(0xFF4CAF50)    // Green for running
-        ActivityType.WALKING -> Color(0xFF2196F3)    // Blue for walking
-        ActivityType.CYCLING -> Color(0xFFFF9800)    // Orange for cycling
     }
 }
 
