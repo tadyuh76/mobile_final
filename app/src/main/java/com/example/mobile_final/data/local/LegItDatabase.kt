@@ -20,13 +20,13 @@ import com.example.mobile_final.data.local.entity.UserSettingsEntity
     version = 3,
     exportSchema = false
 )
-abstract class RunTrackerDatabase : RoomDatabase() {
+abstract class LegItDatabase : RoomDatabase() {
     abstract fun activityDao(): ActivityDao
     abstract fun locationPointDao(): LocationPointDao
     abstract fun userSettingsDao(): UserSettingsDao
 
     companion object {
-        const val DATABASE_NAME = "run_tracker_database"
+        const val DATABASE_NAME = "legit_database"
 
         /**
          * Migration from version 1 to 2: Add weather columns to activities table.

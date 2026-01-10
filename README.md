@@ -1,4 +1,4 @@
-# RunTracker - Fitness Activity Tracking App
+# LegIt - Fitness Activity Tracking App
 
 A comprehensive Android fitness tracking application built with Kotlin, Jetpack Compose, and Firebase. Track your runs, walks, and cycling activities with real-time GPS tracking, weather data, and cloud sync.
 
