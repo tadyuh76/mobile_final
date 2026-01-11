@@ -132,9 +132,10 @@ class HomeViewModel @Inject constructor(
             val todayDuration = activityRepository.getTotalDurationForPeriod(startOfDay, endOfDay)
             val todayCalories = activityRepository.getTotalCaloriesForPeriod(startOfDay, endOfDay)
 
-            // Weekly stats
+            // Weekly stats (Monday start)
             calendar.timeInMillis = System.currentTimeMillis()
-            calendar.set(Calendar.DAY_OF_WEEK, calendar.firstDayOfWeek)
+            calendar.firstDayOfWeek = Calendar.MONDAY
+            calendar.set(Calendar.DAY_OF_WEEK, Calendar.MONDAY)
             calendar.set(Calendar.HOUR_OF_DAY, 0)
             calendar.set(Calendar.MINUTE, 0)
             calendar.set(Calendar.SECOND, 0)

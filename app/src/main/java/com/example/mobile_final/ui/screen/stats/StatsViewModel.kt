@@ -79,15 +79,16 @@ class StatsViewModel @Inject constructor(
         val calendar = Calendar.getInstance()
         val dailyStatsList = mutableListOf<DailyStats>()
 
-        // Get stats for each day of the current week
-        calendar.set(Calendar.DAY_OF_WEEK, calendar.firstDayOfWeek)
+        // Get stats for each day of the current week (Monday start)
+        calendar.firstDayOfWeek = Calendar.MONDAY
+        calendar.set(Calendar.DAY_OF_WEEK, Calendar.MONDAY)
         calendar.set(Calendar.HOUR_OF_DAY, 0)
         calendar.set(Calendar.MINUTE, 0)
         calendar.set(Calendar.SECOND, 0)
         calendar.set(Calendar.MILLISECOND, 0)
 
-        val dayNames = listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
-        val fullDayNames = listOf("Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday")
+        val dayNames = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
+        val fullDayNames = listOf("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
 
         for (i in 0 until 7) {
             val startOfDay = calendar.timeInMillis
@@ -100,12 +101,10 @@ class StatsViewModel @Inject constructor(
             val calories = activityRepository.getTotalCaloriesForPeriod(startOfDay, endOfDay)
             val count = activityRepository.getActivityCountForPeriod(startOfDay, endOfDay)
 
-            val dayIndex = calendar.get(Calendar.DAY_OF_WEEK) - 1
-
             dailyStatsList.add(
                 DailyStats(
-                    dayOfWeek = fullDayNames[dayIndex],
-                    shortDay = dayNames[dayIndex],
+                    dayOfWeek = fullDayNames[i],
+                    shortDay = dayNames[i],
                     distanceKm = distance / 1000.0,
                     durationMinutes = duration / 60,
                     calories = calories,
@@ -140,8 +139,9 @@ class StatsViewModel @Inject constructor(
         val calendar = Calendar.getInstance()
         val weeklyStatsList = mutableListOf<WeeklyStats>()
 
-        // Get stats for the last 4 weeks
-        calendar.set(Calendar.DAY_OF_WEEK, calendar.firstDayOfWeek)
+        // Get stats for the last 4 weeks (Monday start)
+        calendar.firstDayOfWeek = Calendar.MONDAY
+        calendar.set(Calendar.DAY_OF_WEEK, Calendar.MONDAY)
         calendar.set(Calendar.HOUR_OF_DAY, 0)
         calendar.set(Calendar.MINUTE, 0)
         calendar.set(Calendar.SECOND, 0)
